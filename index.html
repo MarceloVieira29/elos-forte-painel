@@ -1,17 +1,16 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<title>ELOS FORTE INVESTIMENTOS</title>
+  <title>ELOS FORTE INVESTIMENTOS</title>
 
-<!-- Estilos -->
-<link rel="stylesheet" href="./assets/css/style.css">
+  <!-- CSS principal -->
+  <link rel="stylesheet" href="./assets/css/style.css">
 
-<!-- Fonte Monoespaçada suave -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap">
-
+  <!-- Fonte monoespaçada opcional -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap">
 </head>
 <body>
 
@@ -20,7 +19,6 @@
     <h1>
       <img class="logo" src="./assets/img/elos_fusao_horizontal_iconOnly_300w.png" alt="ELOS FORTE INVESTIMENTOS">
     </h1>
-
     <div class="subtitle">
       Ciclo atual:
       <span id="cycleLabel" class="mono"></span>
@@ -28,11 +26,10 @@
       Saldo do Fundo:
       <span id="saldoFundo" class="mono"></span>
     </div>
-
     <nav>
       <button class="tab-btn active" data-tab="tab-lancamentos">Lançamentos (Cotas)</button>
       <button class="tab-btn" data-tab="tab-emprestimos">Empréstimos</button>
-      <button class="tab-btn" data-tab="tab-retornos">Retornos</button>
+      <button class="tab-btn" data-tab="tab-retornos">Retornos (Pagamentos)</button>
       <button class="tab-btn" data-tab="tab-correntistas">Correntistas</button>
       <button class="tab-btn" data-tab="tab-resumo">Resumo & Filtros</button>
       <button class="tab-btn" data-tab="tab-baixa-final">Baixa Final 10%</button>
@@ -42,3 +39,375 @@
 </header>
 
 <main class="container">
+  <!-- KPIs -->
+  <section class="grid cols-3" id="kpis">
+    <div class="card kpi">
+      <div>
+        <small>Total de Cotas (Ciclo)</small>
+        <h2 class="mono" id="kpiTotalCotas">R$ 0,00</h2>
+      </div>
+    </div>
+    <div class="card kpi">
+      <div>
+        <small>Passivo 10% a Pagar (Ciclo)</small>
+        <h2 class="mono" id="kpiPassivo10">R$ 0,00</h2>
+      </div>
+    </div>
+    <div class="card kpi">
+      <div>
+        <small>Total Juros Recebidos</small>
+        <h2 class="mono" id="kpiJuros">R$ 0,00</h2>
+      </div>
+    </div>
+  </section>
+
+  <!-- Lançamentos (Cotas) -->
+  <section id="tab-lancamentos" class="card" style="margin-top:16px">
+    <h3>Lançar Cotas Mensais (acréscimo automático de 10% no passivo)</h3>
+    <div class="grid cols-3">
+      <div>
+        <label>Correntista</label>
+        <select id="cotistaSelect"></select>
+      </div>
+      <div>
+        <label>Valor (R$)</label>
+        <input type="number" id="valorCota" min="0" step="0.01" placeholder="100,00" />
+      </div>
+      <div>
+        <label>Data</label>
+        <input type="date" id="dataCota" />
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn btn-primary" id="btnAddCota">Adicionar Lançamento</button>
+      <span class="hint">
+        Cada lançamento aumenta o saldo do fundo e acumula passivo de 10% para o acerto no fim do ciclo.
+      </span>
+    </div>
+    <div style="margin-top:8px; overflow:auto">
+      <table id="tabelaCotas">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Correntista</th>
+            <th>Valor</th>
+            <th>+10% (Passivo)</th>
+            <th>Ciclo</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Empréstimos -->
+  <section id="tab-emprestimos" class="card" hidden>
+    <h3>Registrar Empréstimo (20% ou 30%)</h3>
+    <div class="grid cols-3">
+      <div>
+        <label>Tomador</label>
+        <input type="text" id="emprestTomador" placeholder="Nome do tomador" />
+      </div>
+      <div>
+        <label>Principal (R$)</label>
+        <input type="number" id="emprestPrincipal" min="0" step="0.01" />
+      </div>
+      <div>
+        <label>Percentual</label>
+        <select id="emprestPercentual">
+          <option value="0.2">20%</option>
+          <option value="0.3">30%</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid cols-3" style="margin-top:8px">
+      <div>
+        <label>Data</label>
+        <input type="date" id="emprestData" />
+        <label style="margin-top:8px; display:block">Vencimento</label>
+        <input type="date" id="emprestVenc" />
+      </div>
+      <div>
+        <label>Status</label>
+        <select id="emprestStatus">
+          <option value="aberto">Aberto</option>
+          <option value="fechado">Fechado</option>
+        </select>
+      </div>
+      <div class="row" style="align-items:flex-end">
+        <button class="btn btn-primary" id="btnAddEmprestimo">Registrar Empréstimo</button>
+      </div>
+    </div>
+    <div class="hint" style="margin-top:8px">
+      Ao registrar um empréstimo, o <b>saldo do fundo diminui</b> pelo principal liberado.
+      Para empréstimos acima de R$ 250,00 é gerado cashback de 5%.
+    </div>
+    <div style="margin-top:8px; overflow:auto">
+      <table id="tabelaEmprestimos">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Tomador</th>
+            <th>Principal</th>
+            <th>%</th>
+            <th>Devido (principal+juros)</th>
+            <th>Pago</th>
+            <th>Aberto?</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Retornos -->
+  <section id="tab-retornos" class="card" hidden>
+    <h3>Registrar Retorno de Empréstimo</h3>
+    <div class="grid cols-3">
+      <div>
+        <label>Empréstimo</label>
+        <select id="retornoEmprestimo"></select>
+      </div>
+      <div>
+        <label>Valor Pago (R$)</label>
+        <input type="number" id="retornoValor" min="0" step="0.01" />
+      </div>
+      <div>
+        <label>Data</label>
+        <input type="date" id="retornoData" />
+      </div>
+    </div>
+    <div class="grid cols-3" style="margin-top:8px">
+      <div>
+        <label>Tipo</label>
+        <select id="retornoTipo">
+          <option value="misto">Misto (Principal+Juros)</option>
+          <option value="principal">Somente Principal</option>
+          <option value="juros">Somente Juros</option>
+        </select>
+      </div>
+      <div class="row" style="align-items:flex-end">
+        <button class="btn btn-primary" id="btnAddRetorno">Adicionar Retorno</button>
+      </div>
+    </div>
+    <div class="hint" style="margin-top:8px">
+      Cada retorno <b>aumenta</b> o saldo do fundo. Se for juros, também soma no indicador de
+      <b>Juros Recebidos</b>. O tipo <b>Misto</b> já preenche o valor devido para quitar o empréstimo.
+    </div>
+    <div style="margin-top:8px; overflow:auto">
+      <table id="tabelaRetornos">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Tomador</th>
+            <th>Valor</th>
+            <th>Tipo</th>
+            <th>Empréstimo</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Correntistas -->
+  <section id="tab-correntistas" class="card" hidden>
+    <h3>Gerenciar Correntistas</h3>
+    <div class="row" style="margin-bottom:8px">
+      <button class="btn btn-ghost" id="btnAddPessoa">Adicionar Pessoa</button>
+      <button class="btn btn-danger" id="btnResetDados">Zerar Tudo (cautela)</button>
+    </div>
+    <div style="overflow:auto; margin-top:8px">
+      <table id="tabelaPessoas">
+        <thead>
+          <tr>
+            <th style="width:56px">#</th>
+            <th style="width:36%">Nome</th>
+            <th>Total Cotas</th>
+            <th>Previsão 10%</th>
+            <th>Parcela</th>
+            <th style="width:120px">Ação</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Resumo & Filtros -->
+  <section id="tab-resumo" class="card" hidden>
+    <h3>Resumo & Filtros</h3>
+    <div class="grid cols-3">
+      <div>
+        <label>De</label>
+        <input type="date" id="filtroDe">
+      </div>
+      <div>
+        <label>Até</label>
+        <input type="date" id="filtroAte">
+      </div>
+      <div>
+        <label>Tipo</label>
+        <select id="filtroTipo">
+          <option value="todos">Todos</option>
+          <option value="cotas">Cotas</option>
+          <option value="emprestimos">Empréstimos</option>
+          <option value="emp_vencidos">Empréstimos Vencidos</option>
+          <option value="emp_avencer">Empréstimos a Vencer (7 dias)</option>
+          <option value="retornos">Retornos</option>
+          <option value="payouts">Baixas Finais</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid cols-3" style="margin-top:8px">
+      <div>
+        <label>Tomador (Empréstimos/Retornos)</label>
+        <select id="filtroTomador"></select>
+      </div>
+      <div>
+        <label>Correntista (Cotas)</label>
+        <select id="filtroCorrentista"></select>
+      </div>
+    </div>
+
+    <div class="row" style="margin:12px 0">
+      <button class="btn btn-primary" id="btnAplicarFiltros">Aplicar Filtros</button>
+      <button class="btn btn-ghost" id="btnLimparFiltros">Limpar</button>
+      <button class="btn btn-ghost btn-mini" id="btnExportResumoCSV">Exportar (CSV)</button>
+      <button class="btn btn-ghost btn-mini" id="btnExportResumoXLS">Exportar (Excel)</button>
+    </div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Movimentos (Filtrados)</h3>
+        <div style="overflow:auto; margin-top:8px">
+          <table id="tabelaMovimentos">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Descrição</th>
+                <th>Valor</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Totais (Período)</h3>
+        <ul id="totaisPeriodo" class="muted"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Baixa Final 10% -->
+  <section id="tab-baixa-final" class="card" hidden>
+    <h3>Baixa Final do Ciclo (devolver cotas + 10%)</h3>
+    <div class="grid cols-3">
+      <div>
+        <label>Ciclo</label>
+        <select id="cicloPayout"></select>
+      </div>
+      <div class="row" style="align-items:flex-end; gap:8px">
+        <button class="btn btn-primary" id="btnGerarPayout">Calcular Pagamento Final</button>
+        <button class="btn btn-ghost btn-mini" id="btnExportPayoutCSV">Exportar CSV</button>
+        <button class="btn btn-ghost btn-mini" id="btnExportPayoutXLS">Exportar Excel</button>
+      </div>
+    </div>
+    <div style="margin-top:8px; overflow:auto">
+      <table id="tabelaPayouts">
+        <thead>
+          <tr>
+            <th>Correntista</th>
+            <th>Total Cotas</th>
+            <th>10%</th>
+            <th>Devolver</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Config -->
+  <section id="tab-config" class="card" hidden>
+    <h3>Configurações & Utilitários</h3>
+
+    <div class="grid cols-3">
+      <div>
+        <label>Início do Ciclo</label>
+        <input type="month" id="cfgInicio">
+      </div>
+      <div>
+        <label>Fim do Ciclo</label>
+        <input type="month" id="cfgFim">
+      </div>
+      <div class="row" style="align-items:flex-end">
+        <button class="btn btn-primary" id="btnSalvarCfg">Salvar Ciclo</button>
+      </div>
+    </div>
+
+    <hr style="border-color:#223047; opacity:.3; margin:16px 0">
+
+    <div>
+      <h3 style="margin:0 0 8px">Backup (Exportar/Importar JSON)</h3>
+      <div class="row">
+        <button class="btn btn-ghost btn-mini" id="btnExportarBackup">Exportar Backup (.json)</button>
+        <input type="file" id="inputImportBackup" accept=".json,application/json" hidden>
+        <button class="btn btn-ghost btn-mini" id="btnImportarBackup">Importar Backup (.json)</button>
+        <span class="hint">Importar exige estar desbloqueado.</span>
+      </div>
+    </div>
+
+    <hr style="border-color:#223047; opacity:.3; margin:16px 0">
+
+    <div>
+      <h3 style="margin:0 0 8px">Bloqueio por PIN</h3>
+      <div class="grid cols-3">
+        <div>
+          <label>PIN atual</label>
+          <input type="password" id="pinAtual" placeholder="se existir">
+        </div>
+        <div>
+          <label>Novo PIN</label>
+          <input type="password" id="pinNovo" placeholder="4-10 dígitos">
+        </div>
+        <div class="row" style="align-items:flex-end; gap:8px">
+          <button class="btn btn-ghost btn-mini" id="btnDefinirPIN">Definir/Alterar PIN</button>
+          <button class="btn btn-ghost btn-mini" id="btnBloquear">Bloquear</button>
+          <button class="btn btn-ghost btn-mini" id="btnDesbloquear">Desbloquear</button>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:6px">
+        Status: <b id="lockStatus">—</b>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div>Plataforma © 2025 — Gestão simples e clara. Desenvolvido por <b>Marcelo</b>.</div>
+  </footer>
+</main>
+
+<!-- CONFIRM OVERLAY -->
+<div id="confirmOverlay" aria-hidden="true">
+  <div class="cf-modal">
+    <h4 id="confirmTitle">Confirmar ação</h4>
+    <div id="confirmText" class="muted">Tem certeza?</div>
+    <div class="cf-btns">
+      <button class="cf-no" id="confirmNo">Não</button>
+      <button class="cf-yes" id="confirmYes">Sim</button>
+    </div>
+  </div>
+</div>
+
+<!-- JS principal em módulo -->
+<script type="module" src="./assets/js/main.js"></script>
+
+</body>
+</html>
