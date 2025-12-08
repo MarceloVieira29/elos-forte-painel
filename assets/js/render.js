@@ -1,25 +1,32 @@
+/* =============================================================
+   RENDERIZAÇÃO DO SISTEMA (OTIMIZADO)
+============================================================= */
+
 import { state } from "./state.js";
+import {
+    totalCotas,
+    totalPassivo,
+    totalJuros,
+    cashbackPorPessoa
+} from "./calc.js";
 import { formatMoney } from "./utils.js";
 
-/* ============================================================
-   RENDERIZAÇÃO — SEÇÕES PRINCIPAIS
-============================================================ */
-
+/* -------------------------------------------------------------
+   RENDER KPI's
+------------------------------------------------------------- */
 export function renderKpis() {
-    document.getElementById("kpi-total-cotas").textContent =
-        formatMoney(state.cotas.reduce((s, c) => s + c.valor, 0));
+    const elCotas = document.getElementById("kpi-total-cotas");
+    const elPassivo = document.getElementById("kpi-passivo");
+    const elJuros = document.getElementById("kpi-juros");
 
-    document.getElementById("kpi-passivo").textContent =
-        formatMoney(state.cotas.reduce((s, c) => s + c.acrescimo, 0));
-
-    document.getElementById("kpi-juros").textContent =
-        formatMoney(state.emprestimos.reduce((s, e) => s + (e.total - e.principal), 0));
+    if (elCotas) elCotas.textContent = formatMoney(totalCotas());
+    if (elPassivo) elPassivo.textContent = formatMoney(totalPassivo());
+    if (elJuros) elJuros.textContent = formatMoney(totalJuros());
 }
 
-/* ============================================================
-   TABELA DE COTAS
-============================================================ */
-
+/* -------------------------------------------------------------
+   RENDER COTAS
+------------------------------------------------------------- */
 export function renderCotas() {
     const body = document.getElementById("tbl-cotas-body");
     if (!body) return;
@@ -28,24 +35,23 @@ export function renderCotas() {
 
     state.cotas.forEach(c => {
         const tr = document.createElement("tr");
-
         tr.innerHTML = `
             <td>${c.data}</td>
             <td>${c.pessoa}</td>
             <td>${formatMoney(c.valor)}</td>
             <td>${formatMoney(c.acrescimo)}</td>
             <td>${c.data.slice(0, 7)}</td>
-            <td><button class="btn-ghost" onclick="window.events.excluirCota('${c.id}')">Excluir</button></td>
+            <td>
+                <button class="btn-ghost" onclick="window.events.excluirCota('${c.id}')">Excluir</button>
+            </td>
         `;
-
         body.appendChild(tr);
     });
 }
 
-/* ============================================================
-   TABELA DE EMPRÉSTIMOS
-============================================================ */
-
+/* -------------------------------------------------------------
+   RENDER EMPRÉSTIMOS
+------------------------------------------------------------- */
 export function renderEmprestimos() {
     const body = document.getElementById("tbl-emp-body");
     if (!body) return;
@@ -53,72 +59,64 @@ export function renderEmprestimos() {
     body.innerHTML = "";
 
     state.emprestimos.forEach(e => {
-        const statusHtml = e.aberto
+        const aprovado = e.aberto
             ? `<span class="pill out">Aberto</span>`
             : `<span class="pill in">Fechado</span>`;
 
         const tr = document.createElement("tr");
+
         tr.innerHTML = `
             <td>${e.data}</td>
-            <td>${e.pessoa}<br><small>EMP-${e.id.slice(0, 4)} • Venc.: ${e.venc}</small></td>
+            <td>${e.pessoa}<br><small>EMP-${e.id.slice(0, 4)} • Venc: ${e.venc}</small></td>
             <td>${formatMoney(e.principal)}</td>
             <td>${e.jurosPercent}%</td>
             <td>${formatMoney(e.total)}</td>
             <td>${formatMoney(e.pago)}</td>
-            <td>${statusHtml}</td>
+            <td>${aprovado}</td>
             <td>
-                ${e.aberto
-                    ? `<button onclick="window.events.registrarPagamentoPrompt('${e.id}')" class="btn-ghost">Pagar</button>`
-                    : `<button onclick="window.events.reabrirEmprestimo('${e.id}')" class="btn-ghost">Reabrir</button>`
+                ${
+                    e.aberto
+                        ? `<button class="btn-ghost" onclick="window.events.registrarPagamentoPrompt('${e.id}')">Pagar</button>`
+                        : `<button class="btn-ghost" onclick="window.events.reabrirEmprestimo('${e.id}')">Reabrir</button>`
                 }
-                <button onclick="window.events.excluirEmprestimo('${e.id}')" class="btn-ghost">Excluir</button>
+                <button class="btn-ghost" onclick="window.events.excluirEmprestimo('${e.id}')">Excluir</button>
             </td>
         `;
-
         body.appendChild(tr);
     });
 }
 
-/* ============================================================
-   TABELA — CASHBACK POR CORRENTISTA (CORRIGIDO)
-============================================================ */
-
+/* -------------------------------------------------------------
+   RENDER CASHBACK (AGRUPADO)
+------------------------------------------------------------- */
 export function renderCashbacks() {
     const body = document.getElementById("tbl-cashback-body");
     if (!body) return;
 
+    const mapa = cashbackPorPessoa();
+
     body.innerHTML = "";
 
-    if (!state.cashbacks.length) {
-        body.innerHTML = `
-            <tr><td colspan="2" class="muted">Nenhum cashback gerado.</td></tr>
-        `;
+    const nomes = Object.keys(mapa);
+
+    if (!nomes.length) {
+        body.innerHTML = `<tr><td colspan="2" class="muted">Nenhum cashback gerado.</td></tr>`;
         return;
     }
 
-    // AGRUPAR POR CORRENTISTA
-    const agrupado = {};
-    state.cashbacks.forEach(cb => {
-        if (!agrupado[cb.pessoa]) agrupado[cb.pessoa] = 0;
-        agrupado[cb.pessoa] += cb.valor;
-    });
-
-    // RENDERIZAR AGRUPADO
-    Object.keys(agrupado).forEach(pessoa => {
+    nomes.forEach(nome => {
         const tr = document.createElement("tr");
-
         tr.innerHTML = `
-            <td>${pessoa}</td>
-            <td>${formatMoney(agrupado[pessoa])}</td>
+            <td>${nome}</td>
+            <td>${formatMoney(mapa[nome])}</td>
         `;
         body.appendChild(tr);
     });
 }
 
-/* ============================================================
-   ATUALIZAR TODAS AS SEÇÕES
-============================================================ */
-
+/* -------------------------------------------------------------
+   RENDER GERAL
+------------------------------------------------------------- */
 export function renderAll() {
     renderKpis();
     renderCotas();
