@@ -1,28 +1,27 @@
+/* =============================================================
+   MAIN.JS — OTIMIZADO
+   Inicialização + Eventos + Integração com Módulos
+============================================================= */
+
+import { loadState } from "./state.js";
 import { events } from "./events.js";
-import { state, loadState } from "./state.js";
 import { renderAll } from "./render.js";
 
-/* ============================================================
-   INICIALIZAÇÃO DO SISTEMA
-============================================================ */
-
+/* -------------------------------------------------------------
+   INICIALIZAÇÃO
+------------------------------------------------------------- */
 window.addEventListener("DOMContentLoaded", () => {
     loadState();
-    anexarEventosGlobais();
+    registrarEventosGlobais();
     renderAll();
 });
 
-/* ============================================================
-   EVENTOS GLOBAIS (BOTÕES DO HTML)
-============================================================ */
+/* -------------------------------------------------------------
+   FUNÇÃO PARA REGISTRAR EVENTOS DO HTML
+------------------------------------------------------------- */
+function registrarEventosGlobais() {
 
-function anexarEventosGlobais() {
-
-    /* --------------------------------------------------------
-       LANÇAMENTOS (COTAS)
-    -------------------------------------------------------- */
-
-    // Botão "Adicionar Lançamento"
+    /* COTAS */
     const btnAddCota = document.getElementById("btn-add-cota");
     if (btnAddCota) {
         btnAddCota.addEventListener("click", () => {
@@ -34,11 +33,7 @@ function anexarEventosGlobais() {
         });
     }
 
-    /* --------------------------------------------------------
-       EMPRÉSTIMOS
-    -------------------------------------------------------- */
-
-    // Botão Registrar Empréstimo
+    /* EMPRÉSTIMOS */
     const btnAddEmp = document.getElementById("btn-add-emp");
     if (btnAddEmp) {
         btnAddEmp.addEventListener("click", () => {
@@ -52,26 +47,13 @@ function anexarEventosGlobais() {
         });
     }
 
-    /* --------------------------------------------------------
-       PAGAMENTO DE EMPRÉSTIMO (PROMPT)
-    -------------------------------------------------------- */
-
-    // Torna acessível pelo HTML
+    /* REGISTRAR FUNÇÕES GLOBAIS (botões dentro das tabelas) */
     window.events = events;
 
-    // Criar função global chamada pelo botão "Pagar"
+    // Prompt para pagamento
     window.events.registrarPagamentoPrompt = (id) => {
-        const valor = prompt("Informe o valor do pagamento:");
-
-        if (!valor) return;
-
-        events.registrarPagamento(id, valor);
+        const v = prompt("Informe o valor do pagamento:");
+        if (!v) return;
+        events.registrarPagamento(id, v);
     };
 }
-
-/* ============================================================
-   EXPORTAÇÃO (SE PRECISAR)
-============================================================ */
-export const app = {
-    renderAll,
-};
