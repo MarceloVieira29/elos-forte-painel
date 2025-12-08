@@ -1,180 +1,127 @@
 import { state } from "./state.js";
-import { fmt } from "./utils.js";
-import {
-  cicloAtualLabel,
-  totalCotas,
-  passivo10,
-  jurosRecebidos,
-  saldoFundo
-} from "./calc.js";
+import { formatMoney } from "./utils.js";
 
-/* =============================
-          RENDERIZAÇÃO
-   ============================= */
+/* ============================================================
+   RENDERIZAÇÃO — SEÇÕES PRINCIPAIS
+============================================================ */
 
-export function renderHeader() {
-  document.getElementById("cycleLabel").textContent = cicloAtualLabel();
-  document.getElementById("saldoFundo").textContent = fmt(saldoFundo());
+export function renderKpis() {
+    document.getElementById("kpi-total-cotas").textContent =
+        formatMoney(state.cotas.reduce((s, c) => s + c.valor, 0));
+
+    document.getElementById("kpi-passivo").textContent =
+        formatMoney(state.cotas.reduce((s, c) => s + c.acrescimo, 0));
+
+    document.getElementById("kpi-juros").textContent =
+        formatMoney(state.emprestimos.reduce((s, e) => s + (e.total - e.principal), 0));
 }
 
-export function renderKPIs() {
-  const ciclo = cicloAtualLabel();
-  document.getElementById("kpiTotalCotas").textContent = fmt(totalCotas(ciclo));
-  document.getElementById("kpiPassivo10").textContent = fmt(passivo10(ciclo));
-  document.getElementById("kpiJuros").textContent = fmt(jurosRecebidos());
-}
-
-/* === RENDER CORRENTISTAS === */
-export function renderPessoas() {
-  const ciclo = cicloAtualLabel();
-  const tbody = document.querySelector("#tabelaPessoas tbody");
-  tbody.innerHTML = "";
-
-  state.pessoas.forEach((p, i) => {
-    const tot = state.cotas
-      .filter(c => c.pessoaId === p.id && c.ciclo === ciclo)
-      .reduce((s, c) => s + Number(c.valor), 0);
-
-    const qtd = state.cotas
-      .filter(c => c.pessoaId === p.id && c.ciclo === ciclo)
-      .length;
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i + 1}</td>
-      <td><input data-pessoa-nome="${p.id}" value="${p.nome}"></td>
-      <td class="val-in">${fmt(tot)}</td>
-      <td class="muted">${fmt(tot * 0.10)}</td>
-      <td class="muted">${Math.min(qtd, 12)}/12</td>
-      <td><button class="btn btn-ghost" data-del-pessoa="${p.id}">Remover</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-/* ======================================================================================
- As outras renderizações (cotas, empréstimos, retornos, payouts, filtros) seguem abaixo.
- ====================================================================================== */
+/* ============================================================
+   TABELA DE COTAS
+============================================================ */
 
 export function renderCotas() {
-  const sel = document.getElementById("cotistaSelect");
-  const prev = sel.value || null;
+    const body = document.getElementById("tbl-cotas-body");
+    if (!body) return;
 
-  sel.innerHTML = "";
-  state.pessoas.forEach(p => {
-    sel.innerHTML += `<option value="${p.id}">${p.nome}</option>`;
-  });
+    body.innerHTML = "";
 
-  if (prev) sel.value = prev;
+    state.cotas.forEach(c => {
+        const tr = document.createElement("tr");
 
-  const filtroId = sel.value;
-  const tbody = document.querySelector("#tabelaCotas tbody");
-  tbody.innerHTML = "";
+        tr.innerHTML = `
+            <td>${c.data}</td>
+            <td>${c.pessoa}</td>
+            <td>${formatMoney(c.valor)}</td>
+            <td>${formatMoney(c.acrescimo)}</td>
+            <td>${c.data.slice(0, 7)}</td>
+            <td><button class="btn-ghost" onclick="window.events.excluirCota('${c.id}')">Excluir</button></td>
+        `;
 
-  state.cotas
-    .filter(c => !filtroId || c.pessoaId === filtroId)
-    .sort((a, b) => a.data.localeCompare(b.data))
-    .forEach(c => {
-      const p = state.pessoas.find(x => x.id === c.pessoaId);
-
-      tbody.innerHTML += `
-        <tr>
-          <td>${c.data}</td>
-          <td>${p ? p.nome : "—"}</td>
-          <td class="val-in">${fmt(c.valor)}</td>
-          <td class="muted">${fmt(c.valor * 0.10)}</td>
-          <td class="muted">${c.ciclo}</td>
-          <td><button class="btn btn-ghost" data-del-cota="${c.id}">Excluir</button></td>
-        </tr>
-      `;
+        body.appendChild(tr);
     });
 }
+
+/* ============================================================
+   TABELA DE EMPRÉSTIMOS
+============================================================ */
 
 export function renderEmprestimos() {
-  const tbody = document.querySelector("#tabelaEmprestimos tbody");
-  tbody.innerHTML = "";
+    const body = document.getElementById("tbl-emp-body");
+    if (!body) return;
 
-  state.emprestimos
-    .sort((a, b) => a.data.localeCompare(b.data))
-    .forEach(e => {
-      const juros = Number(e.principal) * Number(e.percentual);
-      const total = Number(e.principal) + juros;
-      const pagos = state.retornos
-        .filter(r => r.emprestimoId === e.id)
-        .reduce((s, r) => s + Number(r.valor), 0);
+    body.innerHTML = "";
 
-      const aberto = pagos + 0.01 < total;
+    state.emprestimos.forEach(e => {
+        const statusHtml = e.aberto
+            ? `<span class="pill out">Aberto</span>`
+            : `<span class="pill in">Fechado</span>`;
 
-      tbody.innerHTML += `
-        <tr>
-          <td>${e.data}</td>
-          <td>${e.tomador}<div class="muted mono">${e.codigo} • Venc.: ${e.vencimento}</div></td>
-          <td class="val-out">${fmt(e.principal)}</td>
-          <td>${Math.round(e.percentual * 100)}%</td>
-          <td>${fmt(total)}</td>
-          <td>${fmt(pagos)}</td>
-          <td>${aberto ? '<span class="pill out">Aberto</span>' : '<span class="pill in">Fechado</span>'}</td>
-          <td>
-            <button class="btn btn-ghost" data-close-emp="${e.id}">${aberto ? "Fechar" : "Reabrir"}</button>
-            <button class="btn btn-ghost" data-del-emp="${e.id}">Excluir</button>
-          </td>
-        </tr>
-      `;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${e.data}</td>
+            <td>${e.pessoa}<br><small>EMP-${e.id.slice(0, 4)} • Venc.: ${e.venc}</small></td>
+            <td>${formatMoney(e.principal)}</td>
+            <td>${e.jurosPercent}%</td>
+            <td>${formatMoney(e.total)}</td>
+            <td>${formatMoney(e.pago)}</td>
+            <td>${statusHtml}</td>
+            <td>
+                ${e.aberto
+                    ? `<button onclick="window.events.registrarPagamentoPrompt('${e.id}')" class="btn-ghost">Pagar</button>`
+                    : `<button onclick="window.events.reabrirEmprestimo('${e.id}')" class="btn-ghost">Reabrir</button>`
+                }
+                <button onclick="window.events.excluirEmprestimo('${e.id}')" class="btn-ghost">Excluir</button>
+            </td>
+        `;
+
+        body.appendChild(tr);
     });
+}
 
-  // popular lista para retornos
-  const sel = document.getElementById("retornoEmprestimo");
-  sel.innerHTML = "";
+/* ============================================================
+   TABELA — CASHBACK POR CORRENTISTA (CORRIGIDO)
+============================================================ */
 
-  state.emprestimos.forEach(e => {
-    const juros = Number(e.principal) * Number(e.percentual);
-    const total = Number(e.principal) + juros;
-    const pagos = state.retornos
-      .filter(r => r.emprestimoId === e.id)
-      .reduce((s, r) => s + Number(r.valor), 0);
+export function renderCashbacks() {
+    const body = document.getElementById("tbl-cashback-body");
+    if (!body) return;
 
-    if (pagos + 0.01 < total) {
-      sel.innerHTML += `
-        <option value="${e.id}">
-          ID ${e.codigo} • ${e.tomador} • ${fmt(e.principal)} • Devido ${fmt(total - pagos)}
-        </option>`;
+    body.innerHTML = "";
+
+    if (!state.cashbacks.length) {
+        body.innerHTML = `
+            <tr><td colspan="2" class="muted">Nenhum cashback gerado.</td></tr>
+        `;
+        return;
     }
-  });
 
-  if (!sel.innerHTML.trim()) {
-    sel.innerHTML = `<option>— nenhum empréstimo aberto —</option>`;
-  }
-}
+    // AGRUPAR POR CORRENTISTA
+    const agrupado = {};
+    state.cashbacks.forEach(cb => {
+        if (!agrupado[cb.pessoa]) agrupado[cb.pessoa] = 0;
+        agrupado[cb.pessoa] += cb.valor;
+    });
 
-export function renderRetornos() {
-  const tbody = document.querySelector("#tabelaRetornos tbody");
-  tbody.innerHTML = "";
+    // RENDERIZAR AGRUPADO
+    Object.keys(agrupado).forEach(pessoa => {
+        const tr = document.createElement("tr");
 
-  state.retornos
-    .sort((a, b) => a.data.localeCompare(b.data))
-    .forEach(r => {
-      const e = state.emprestimos.find(x => x.id === r.emprestimoId);
-
-      tbody.innerHTML += `
-        <tr>
-          <td>${r.data}</td>
-          <td>${e ? e.tomador : "—"}</td>
-          <td class="val-in">${fmt(r.valor)}</td>
-          <td>${r.tipo}</td>
-          <td class="muted">${e ? e.codigo : "—"}</td>
-          <td><button class="btn btn-ghost" data-del-ret="${r.id}">Excluir</button></td>
-        </tr>
-      `;
+        tr.innerHTML = `
+            <td>${pessoa}</td>
+            <td>${formatMoney(agrupado[pessoa])}</td>
+        `;
+        body.appendChild(tr);
     });
 }
 
-export function renderCiclosPayout() {
-  const sel = document.getElementById("cicloPayout");
-  sel.innerHTML = "";
+/* ============================================================
+   ATUALIZAR TODAS AS SEÇÕES
+============================================================ */
 
-  const ciclos = [...new Set(state.cotas.map(c => c.ciclo))];
-
-  ciclos.forEach(c => {
-    sel.innerHTML += `<option value="${c}">${c}</option>`;
-  });
+export function renderAll() {
+    renderKpis();
+    renderCotas();
+    renderEmprestimos();
+    renderCashbacks();
 }
