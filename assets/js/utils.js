@@ -1,28 +1,78 @@
-/* =============================
-              UTILS
-   ============================= */
+/* =============================================================
+   FUNÇÕES UTILITÁRIAS DO SISTEMA
+   (formatar valores, datas, ids e conversões)
+============================================================= */
 
-export const BRL = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL'
-});
+/* -------------------------------------------------------------
+   GERAR ID ÚNICO
+------------------------------------------------------------- */
+export function uid() {
+    return (
+        Date.now().toString(36) +
+        Math.random().toString(36).substring(2, 8)
+    ).toUpperCase();
+}
 
-export const fmt = n => BRL.format(Number(n || 0));
+/* -------------------------------------------------------------
+   FORMATAR NÚMERO EM MOEDA (R$)
+------------------------------------------------------------- */
+export function formatMoney(valor) {
+    const num = Number(valor || 0);
 
-export const uid = () =>
-  Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    return num.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+    });
+}
 
-export const today = () =>
-  new Date().toISOString().slice(0, 10);
+/* -------------------------------------------------------------
+   REMOVER FORMATAÇÃO E RETORNAR NÚMERO
+   Aceita formatos como:
+   - "1.234,56"
+   - "1234,56"
+   - "1234.56"
+   - "R$ 1.234,56"
+------------------------------------------------------------- */
+export function parseMoney(str) {
+    if (!str) return 0;
 
-export function download(filename, content, mime = 'application/octet-stream') {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+    return Number(
+        String(str)
+            .replace("R$", "")
+            .replace(/\./g, "")
+            .replace(",", ".")
+            .trim()
+    ) || 0;
+}
+
+/* -------------------------------------------------------------
+   DATA ATUAL EM FORMATO YYYY-MM-DD
+------------------------------------------------------------- */
+export function today() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+/* -------------------------------------------------------------
+   ADICIONAR MESES A UMA DATA
+------------------------------------------------------------- */
+export function addMonths(dateStr, qtd) {
+    const d = new Date(dateStr);
+    d.setMonth(d.getMonth() + qtd);
+    return d.toISOString().slice(0, 10);
+}
+
+/* -------------------------------------------------------------
+   EXTRAIR "YYYY-MM" DE UMA DATA
+------------------------------------------------------------- */
+export function monthOnly(dateStr) {
+    return String(dateStr).slice(0, 7);
+}
+
+/* -------------------------------------------------------------
+   ORDENAR LISTAS POR DATA (YYYY-MM-DD)
+------------------------------------------------------------- */
+export function sortByDate(arr, field = "data") {
+    return arr.sort((a, b) => {
+        return String(a[field]).localeCompare(String(b[field]));
+    });
 }
