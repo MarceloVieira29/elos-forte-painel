@@ -1,54 +1,77 @@
-import { state, save } from "./state.js";
-import { today, addMonths } from "./utils.js";
-import {
-  renderAll,
-  aplicarFiltros,
-  setupTabs,
-  setupEventHandlers,
-  renderLockStatus
-} from "./events.js";
+import { events } from "./events.js";
+import { state, loadState } from "./state.js";
+import { renderAll } from "./render.js";
 
-/* =============================
-             INIT
-   ============================= */
+/* ============================================================
+   INICIALIZAÇÃO DO SISTEMA
+============================================================ */
 
-function bootstrapPessoas() {
-  if (!state.pessoas || state.pessoas.length === 0) {
-    for (let i = 1; i <= 15; i++) {
-      state.pessoas.push({ id: Date.now().toString(36) + i, nome: `Pessoa ${i}` });
+window.addEventListener("DOMContentLoaded", () => {
+    loadState();
+    anexarEventosGlobais();
+    renderAll();
+});
+
+/* ============================================================
+   EVENTOS GLOBAIS (BOTÕES DO HTML)
+============================================================ */
+
+function anexarEventosGlobais() {
+
+    /* --------------------------------------------------------
+       LANÇAMENTOS (COTAS)
+    -------------------------------------------------------- */
+
+    // Botão "Adicionar Lançamento"
+    const btnAddCota = document.getElementById("btn-add-cota");
+    if (btnAddCota) {
+        btnAddCota.addEventListener("click", () => {
+            const pessoa = document.getElementById("cota-pessoa").value;
+            const valor = document.getElementById("cota-valor").value;
+            const data = document.getElementById("cota-data").value;
+
+            events.registrarCota(pessoa, valor, data);
+        });
     }
-    save();
-  }
+
+    /* --------------------------------------------------------
+       EMPRÉSTIMOS
+    -------------------------------------------------------- */
+
+    // Botão Registrar Empréstimo
+    const btnAddEmp = document.getElementById("btn-add-emp");
+    if (btnAddEmp) {
+        btnAddEmp.addEventListener("click", () => {
+            const pessoa = document.getElementById("emp-pessoa").value;
+            const principal = document.getElementById("emp-principal").value;
+            const juros = Number(document.getElementById("emp-juros").value);
+            const data = document.getElementById("emp-data").value;
+            const venc = document.getElementById("emp-venc").value;
+
+            events.registrarEmprestimo(pessoa, principal, juros, data, venc);
+        });
+    }
+
+    /* --------------------------------------------------------
+       PAGAMENTO DE EMPRÉSTIMO (PROMPT)
+    -------------------------------------------------------- */
+
+    // Torna acessível pelo HTML
+    window.events = events;
+
+    // Criar função global chamada pelo botão "Pagar"
+    window.events.registrarPagamentoPrompt = (id) => {
+        const valor = prompt("Informe o valor do pagamento:");
+
+        if (!valor) return;
+
+        events.registrarPagamento(id, valor);
+    };
 }
 
-function initInputsDefault() {
-  const dHoje = today();
-  const dNext = addMonths(dHoje, 1);
-
-  const elEmpData = document.getElementById("emprestData");
-  const elEmpVenc = document.getElementById("emprestVenc");
-  const elRetData = document.getElementById("retornoData");
-  const elDataCota = document.getElementById("dataCota");
-  const cfgInicio = document.getElementById("cfgInicio");
-  const cfgFim = document.getElementById("cfgFim");
-
-  if (elEmpData) elEmpData.value = dHoje;
-  if (elEmpVenc) elEmpVenc.value = dNext;
-  if (elRetData) elRetData.value = dHoje;
-  if (elDataCota && !elDataCota.value) elDataCota.value = dHoje;
-
-  if (cfgInicio) cfgInicio.value = state.config.inicio;
-  if (cfgFim) cfgFim.value = state.config.fim;
-}
-
-function init() {
-  bootstrapPessoas();
-  setupTabs();
-  setupEventHandlers();
-  initInputsDefault();
-  renderAll();
-  aplicarFiltros();
-  renderLockStatus();
-}
-
-document.addEventListener("DOMContentLoaded", init);
+/* ============================================================
+   EXPORTAÇÃO (SE PRECISAR)
+============================================================ */
+export const app = {
+    renderAll,
+};
