@@ -1,49 +1,106 @@
+/* =============================================================
+   MÓDULO DE CÁLCULOS DO SISTEMA
+   (juros, totais, passivos, agrupamentos e estatísticas)
+============================================================= */
+
 import { state } from "./state.js";
-import { today } from "./utils.js";
 
-/* =============================
-            CÁLCULOS
-   ============================= */
-
-export const cicloAtualLabel = () =>
-  `${state.config.inicio} → ${state.config.fim}`;
-
-export function cicloDeData(dateStr) {
-  const m = (dateStr || today()).slice(0, 7);
-  const inicio = state.config.inicio;
-  const fim = state.config.fim;
-  const label = `${inicio} → ${fim}`;
-
-  if (m >= inicio && m <= fim) return label;
-  return m;
+/* -------------------------------------------------------------
+   TOTAL DE COTAS
+------------------------------------------------------------- */
+export function totalCotas() {
+    return state.cotas.reduce((s, c) => s + c.valor, 0);
 }
 
-export const totalCotas = (ciclo) =>
-  state.cotas
-    .filter(c => !ciclo || c.ciclo === ciclo)
-    .reduce((s, c) => s + Number(c.valor), 0);
+/* -------------------------------------------------------------
+   TOTAL DO PASSIVO (10%)
+------------------------------------------------------------- */
+export function totalPassivo() {
+    return state.cotas.reduce((s, c) => s + c.acrescimo, 0);
+}
 
-export const passivo10 = (ciclo) => {
-  const base = totalCotas(ciclo) * 0.10;
-  const pagos = state.payouts
-    .filter(p => p.ciclo === ciclo)
-    .reduce((s, p) => s + Number(p.valor) / 11, 0);
-  return Math.max(0, base - pagos);
-};
+/* -------------------------------------------------------------
+   TOTAL DE JUROS DE TODOS OS EMPRÉSTIMOS
+------------------------------------------------------------- */
+export function totalJuros() {
+    return state.emprestimos.reduce((s, e) => {
+        const juros = e.total - e.principal;
+        return s + juros;
+    }, 0);
+}
 
-export const jurosRecebidos = () =>
-  state.retornos
-    .filter(r => r.tipo.trim() !== "principal")
-    .reduce((s, r) => s + Number(r.valor), 0);
+/* -------------------------------------------------------------
+   JUROS DE UM EMPRÉSTIMO (isolado)
+------------------------------------------------------------- */
+export function jurosEmprestimo(e) {
+    return e.total - e.principal;
+}
 
-export const totalRetornos = () =>
-  state.retornos.reduce((s, r) => s + Number(r.valor), 0);
+/* -------------------------------------------------------------
+   SALDO DO FUNDO
+   Fórmula:
+   (Total de cotas + total de juros recebidos)
+   - empréstimos abertos
+   - valores pagos
+------------------------------------------------------------- */
+export function saldoFundo() {
+    const totalC = totalCotas();
+    const totalJ = totalJuros();
 
-export const totalPayouts = () =>
-  state.payouts.reduce((s, p) => s + Number(p.valor), 0);
+    // total liberado em empréstimos
+    const totalEmp = state.emprestimos.reduce((s, e) => s + e.principal, 0);
 
-export const totalEmprestimosLiberados = () =>
-  state.emprestimos.reduce((s, e) => s + Number(e.principal), 0);
+    // total já pago para o fundo
+    const totalPagamentos = state.emprestimos.reduce((s, e) => s + e.pago, 0);
 
-export const saldoFundo = () =>
-  totalCotas() + totalRetornos() - totalEmprestimosLiberados() - totalPayouts();
+    return (totalC + totalJ + totalPagamentos) - totalEmp;
+}
+
+/* -------------------------------------------------------------
+   AGRUPAR CASHBACK POR CORRENTISTA
+------------------------------------------------------------- */
+export function cashbackPorPessoa() {
+    const mapa = {};
+
+    state.cashbacks.forEach(cb => {
+        if (!mapa[cb.pessoa]) mapa[cb.pessoa] = 0;
+        mapa[cb.pessoa] += cb.valor;
+    });
+
+    return mapa;
+}
+
+/* -------------------------------------------------------------
+   TOTAL DE CASHBACK (todos os correntistas)
+------------------------------------------------------------- */
+export function totalCashback() {
+    return state.cashbacks.reduce((s, cb) => s + cb.valor, 0);
+}
+
+/* -------------------------------------------------------------
+   EMPRÉSTIMOS ABERTOS
+------------------------------------------------------------- */
+export function emprestimosAbertos() {
+    return state.emprestimos.filter(e => e.aberto);
+}
+
+/* -------------------------------------------------------------
+   EMPRÉSTIMOS FECHADOS
+------------------------------------------------------------- */
+export function emprestimosFechados() {
+    return state.emprestimos.filter(e => !e.aberto);
+}
+
+/* -------------------------------------------------------------
+   TOTAL DE EMPRÉSTIMOS ABERTOS (somente principal)
+------------------------------------------------------------- */
+export function totalEmprestimosAbertos() {
+    return emprestimosAbertos().reduce((s, e) => s + e.principal, 0);
+}
+
+/* -------------------------------------------------------------
+   TOTAL DE EMPRÉSTIMOS FECHADOS (somente principal)
+------------------------------------------------------------- */
+export function totalEmprestimosFechados() {
+    return emprestimosFechados().reduce((s, e) => s + e.principal, 0);
+}
