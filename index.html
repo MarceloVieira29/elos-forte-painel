@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ELOS FORTE INVESTIMENTOS</title>
+<style>
+:root{
+  --bg:#0f172a; --panel:#111827; --soft:#1f2937; --muted:#334155;
+  --accent:#22c55e; --danger:#ef4444; --warn:#f59e0b; --text:#e5e7eb;
+  --sub:#94a3b8; --card:#0b1223; --shadow: 0 10px 30px rgba(0,0,0,.35);
+  --radius: 18px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu;
+  background: radial-gradient(1200px 600px at 10% -10%, #1e293b 10%, transparent 60%),
+              radial-gradient(1000px 500px at 110% 10%, #0b1223 10%, transparent 60%),
+              var(--bg);
+  color:var(--text); min-height:100dvh;
+}
+.container{max-width:1200px; margin:0 auto; padding:16px}
+h1{margin:6px 0 2px; font-size:24px; letter-spacing:.3px; text-align:center;}
+.mono{font-family: ui-monospace, Menlo, Consolas, monospace}
+.muted{color:#9aa8bf}
+.val-in{ color: var(--accent); }
+.val-out{ color: var(--danger); }
+
+header{
+  position:sticky; top:0; z-index:10; backdrop-filter: blur(8px);
+  background:linear-gradient(180deg, rgba(2,6,23,.85), rgba(2,6,23,.55));
+  border-bottom:1px solid #1f2937; box-shadow: var(--shadow);
+}
+header .container{
+  display:flex; flex-direction:column; align-items:center; text-align:center;
+}
+header nav{ display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; justify-content:center; }
+header .logo{
+  display:block; width:300px; height:auto; margin:6px auto 4px;
+  filter: drop-shadow(0 6px 16px rgba(0,0,0,.35));
+}
+@media (max-width:480px){ header .logo{ width:220px; } }
+header .subtitle{
+  display:flex; gap:8px; justify-content:center; align-items:baseline; flex-wrap:wrap;
+  color:var(--sub); font-size:12px;
+}
+#saldoFundo{
+  color: var(--accent); font-weight:900; font-size: clamp(18px, 2.8vw, 22px);
+  line-height:1; white-space:nowrap;
+}
+
+nav .tab-btn{
+  padding:10px 14px; border:1px solid #273548; border-radius:999px; background:#0b1223; color:#cbd5e1;
+  cursor:pointer; transition:.2s; font-weight:600; font-size:14px;
+}
+nav .tab-btn:hover{transform:translateY(-1px); box-shadow:0 6px 18px rgba(34,197,94,.18);}
+nav .tab-btn.active{background:linear-gradient(90deg, #16a34a, #22c55e); color:#081217; border-color:transparent}
+.grid{display:grid; gap:16px}
+.cols-3{grid-template-columns: repeat(3, minmax(0, 1fr));}
+.cols-2{grid-template-columns: repeat(2, minmax(0, 1fr));}
+@media (max-width:980px){.cols-3{grid-template-columns:1fr}.cols-2{grid-template-columns:1fr}}
+.card{
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.0));
+  border:1px solid #223047; border-radius: var(--radius); padding:16px; box-shadow: var(--shadow);
+}
+.card h3{margin:0 0 8px; font-size:16px}
+label{font-size:12px; color:#a3b2c7}
+input, select{
+  width:100%; padding:10px 12px; border-radius:12px;
+  background:#0b1324; border:1px solid #273548; color:#e2e8f0
+}
+input:focus, select:focus{outline:none; box-shadow:0 0 0 2px #22c55e50}
+.row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.btn{padding:10px 14px; border:none; border-radius:12px; font-weight:700; cursor:pointer}
+.btn-primary{background:linear-gradient(90deg, #16a34a, #22c55e); color:#051014}
+.btn-danger{background:linear-gradient(90deg, #ef4444, #f97316); color:white}
+.btn-ghost{background:#0b1223; border:1px solid #273548; color:#cbd5e1}
+.btn-mini{padding:8px 10px; font-weight:600; border-radius:10px}
+table{width:100%; border-collapse: collapse; font-size:13px}
+th, td{padding:10px 8px; border-bottom:1px dashed #263448}
+th{text-align:left; color:#a7b3c8; font-weight:700}
+tr:hover td{background:#0a1221}
+.pill{padding:4px 8px; border-radius:999px; font-weight:700; font-size:11px}
+.pill.in{background:#052e1a; color:#34d399; border:1px solid #14532d}
+.pill.out{background:#3b0a0a; color:#fca5a5; border:1px solid #7f1d1d}
+.kpi{display:flex; gap:12px; align-items:center}
+.kpi h2{margin:0; font-size:22px}
+.kpi small{color:var(--sub)}
+.hint{font-size:12px; color:#9aa8bf}
+footer{
+  margin:40px 0 80px; color:#93a1b7; text-align:center;
+}
+
+/* TOAST */
+.toast{
+  position:fixed; left:50%; transform:translateX(-50%);
+  bottom:20px; display:flex; gap:10px; align-items:center;
+  background:#0c162b; border:1px solid #223047; color:#cbd5e1; padding:10px 14px; border-radius:12px;
+  box-shadow: var(--shadow); z-index:40;
+}
+
+/* CONFIRM MODAL */
+#confirmOverlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.55);
+  display:none; align-items:center; justify-content:center; z-index:70;
+}
+.cf-modal{
+  width:min(460px, 92vw); background:#0b1223; border:1px solid #223047;
+  border-radius:14px; box-shadow:var(--shadow); padding:16px;
+}
+.cf-modal h4{ margin:0 0 12px; font-size:16px; }
+.cf-btns{ display:flex; gap:10px; justify-content:flex-end; margin-top:12px; }
+.cf-no, .cf-yes{
+  border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer;
+}
+.cf-no{ background:#0b1223; border:1px solid #273548; color:#cbd5e1; }
+.cf-yes{ background:linear-gradient(90deg, #ef4444, #f97316); color:#fff; border:none; }
+
+.hl{ animation:hl 1.6s ease; }
+@keyframes hl{
+  0%{box-shadow:0 0 0 0 rgba(34,197,94,.0)}
+  30%{box-shadow:0 0 0 6px rgba(34,197,94,.35)}
+  100%{box-shadow:0 0 0 0 rgba(34,197,94,.0)}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <h1>
+      <img class="logo" src="elos_fusao_horizontal_iconOnly_300w.png" alt="ELOS FORTE INVESTIMENTOS">
+    </h1>
+    <div class="subtitle">
+      Ciclo atual: <span id="cycleLabel" class="mono"></span> •
+      Saldo do Fundo: <span id="saldoFundo" class="mono"></span>
+    </div>
+    <nav>
+      <button class="tab-btn active" data-tab="tab-lancamentos">Lançamentos (Cotas)</button>
+      <button class="tab-btn" data-tab="tab-emprestimos">Empréstimos</button>
+      <button class="tab-btn" data-tab="tab-retornos">Retornos (Pagamentos)</button>
+      <button class="tab-btn" data-tab="tab-correntistas">Correntistas</button>
+      <button class="tab-btn" data-tab="tab-resumo">Resumo & Filtros</button>
+      <button class="tab-btn" data-tab="tab-baixa-final">Baixa Final 10%</button>
+      <button class="tab-btn" data-tab="tab-config">Config</button>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+  <!-- KPIs -->
+  <section class="grid cols-3" id="kpis">
+    <div class="card kpi">
+      <div><small>Total de Cotas (Ciclo)</small><h2 class="mono" id="kpiTotalCotas">R$ 0,00</h2></div>
+    </div>
+    <div class="card kpi">
+      <div><small>Passivo 10% a Pagar (Ciclo)</small><h2 class="mono" id="kpiPassivo10">R$ 0,00</h2></div>
+    </div>
+    <div class="card kpi">
+      <div><small>Total Juros Recebidos</small><h2 class="mono" id="kpiJuros">R$ 0,00</h2></div>
+    </div>
+  </section>
+
+  <!-- Lançamentos (Cotas) -->
+  <section id="tab-lancamentos" class="card" style="margin-top:16px">
+    <h3>Lançar Cotas Mensais (acréscimo automático de 10% no passivo)</h3>
+    <div class="grid cols-3">
+      <div><label>Correntista</label><select id="cotistaSelect"></select></div>
+      <div><label>Valor (R$)</label><input type="number" id="valorCota" min="0" step="0.01" placeholder="100,00" /></div>
+      <div><label>Data</label><input type="date" id="dataCota" /></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn btn-primary" id="btnAddCota">Adicionar Lançamento</button>
+      <span class="hint">Cada lançamento aumenta o saldo do fundo e acumula passivo de 10% para o acerto no fim do ciclo.</span>
+    </div>
+    <div style="margin-top:8px; overflow:auto">
+      <table id="tabelaCotas"><thead>
+        <tr><th>Data</th><th>Correntista</th><th>Valor</th><th>+10% (Passivo)</th><th>Ciclo</th><th>Ação</th></tr>
+      </thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <!-- Empréstimos -->
+  <section id="tab-emprestimos" class="card" hidden>
+    <h3>Registrar Empréstimo (20% ou 30%)</h3>
+    <div class="grid cols-3">
+      <div><label>Tomador</label><input type="text" id="emprestTomador" placeholder="Nome do tomador" /></div>
+      <div><label>Principal (R$)</label><input type="number" id="emprestPrincipal" min="0" step="0.01" /></div>
+      <div><label>Percentual</label>
+        <select id="emprestPercentual">
+          <option value="0.2">20%</option>
+          <option value="0.3">30%</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid cols-3" style="margin-top:8px">
+      <div>
+        <label>Data</label><input type="date" id="emprestData" />
+        <label style="margin-top:8px; display:block">Vencimento</label><input type="date" id="emprestVenc" />
+      </div>
+      <div>
+        <label>Status</label>
+        <select id="emprestStatus">
+          <option value="aberto">Aberto</option>
+          <option value="fechado">Fechado</option>
+        </select>
+      </div>
+      <div class="row" style="align-items:flex-end"><button class="btn btn-primary" id="btnAddEmprestimo">Registrar Empréstimo</button></div>
+    </div>
+    <div class="hint" style="margin-top:8px">Ao registrar um empréstimo, o <b>saldo do fundo diminui</b> pelo principal liberado.</div>
+    <div style="margin-top:8px; overflow:auto">
+      <table id="tabelaEmprestimos"><thead>
+        <tr><th>Data</th><th>Tomador</th><th>Principal</th><th>%</th><th>Devido (principal+juros)</th><th>Pago</th><th>Aberto?</th><th>Ação</th></tr>
+      </thead><tbody></tbody></table>
+    </div>
+
+    <!-- RESUMO DE CASHBACK -->
+    <div style="margin-top:16px; overflow:auto">
+      <h3>Resumo de Cashbacks por Correntista (5% em empréstimos &gt; R$ 250,00)</h3>
+      <table id="tabelaCashbacks"><thead>
+        <tr><th>Correntista</th><th>Total de Cashbacks</th></tr>
+      </thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <!-- Retornos -->
+  <section id="tab-retornos" class="card" hidden>
+    <h3>Registrar Retorno de Empréstimo</h3>
+    <div class="grid cols-3">
+      <div><label>Empréstimo</label><select id="retornoEmprestimo"></select></div>
+      <div><label>Valor Pago (R$)</label><input type="number" id="retornoValor" min="0" step="0.01" /></div>
+      <div><label>Data</label><input type="date" id="retornoData" /></div>
+    </div>
+    <div class="grid cols-3" style="margin-top:8px">
+      <div><label>Tipo</label>
+        <select id="retornoTipo">
+          <option value="misto">Misto (Principal+Juros)</option>
+          <option value="principal">Somente Principal</option>
+          <option value="juros">Somente Juros</option>
+        </select>
+      </div>
+      <div class="row" style="align-items:flex-end"><button class="btn btn-primary" id="btnAddRetorno">Adicionar Retorno</button></div>
+    </div>
+    <div class="hint" style="margin-top:8px">Cada retorno <b>aumenta</b> o saldo do fundo. Se for juros, também soma no indicador de <b>Juros Recebidos</b>. O tipo <b>Misto</b> já preenche o valor devido para quitar o empréstimo.</div>
+    <div style="margin-top:8px; overflow:auto">
+      <table id="tabelaRetornos"><thead>
+        <tr><th>Data</th><th>Tomador</th><th>Valor</th><th>Tipo</th><th>Empréstimo</th><th>Ação</th></tr>
+      </thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <!-- Correntistas -->
+  <section id="tab-correntistas" class="card" hidden>
+    <h3>Gerenciar Correntistas</h3>
+    <div class="row" style="margin-bottom:8px">
+      <button class="btn btn-ghost" id="btnAddPessoa">Adicionar Pessoa</button>
+      <button class="btn btn-danger" id="btnResetDados">Zerar Tudo (cautela)</button>
+    </div>
+    <div style="overflow:auto; margin-top:8px">
+      <table id="tabelaPessoas"><thead>
+        <tr><th style="width:56px">#</th><th style="width:36%">Nome</th><th>Total Cotas</th><th>Previsão 10%</th><th>Parcela</th><th style="width:120px">Ação</th></tr>
+      </thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <!-- Resumo & Filtros -->
+  <section id="tab-resumo" class="card" hidden>
+    <h3>Resumo & Filtros</h3>
+    <div class="grid cols-3">
+      <div><label>De</label><input type="date" id="filtroDe"></div>
+      <div><label>Até</label><input type="date" id="filtroAte"></div>
+      <div><label>Tipo</label>
+        <select id="filtroTipo">
+          <option value="todos">Todos</option>
+          <option value="cotas">Cotas</option>
+          <option value="emprestimos">Empréstimos</option>
+          <option value="emp_vencidos">Empréstimos Vencidos</option>
+          <option value="emp_avencer">Empréstimos a Vencer (7 dias)</option>
+          <option value="retornos">Retornos</option>
+          <option value="payouts">Baixas Finais</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid cols-3" style="margin-top:8px">
+      <div><label>Tomador (Empréstimos/Retornos)</label><select id="filtroTomador"></select></div>
+      <div><label>Correntista (Cotas)</label><select id="filtroCorrentista"></select></div>
+    </div>
+
+    <div class="row" style="margin:12px 0">
+      <button class="btn btn-primary" id="btnAplicarFiltros">Aplicar Filtros</button>
+      <button class="btn btn-ghost" id="btnLimparFiltros">Limpar</button>
+      <button class="btn btn-ghost btn-mini" id="btnExportResumoCSV">Exportar (CSV)</button>
+      <button class="btn btn-ghost btn-mini" id="btnExportResumoXLS">Exportar (Excel)</button>
+    </div>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Movimentos (Filtrados)</h3>
+        <div style="overflow:auto; margin-top:8px">
+          <table id="tabelaMovimentos"><thead>
+            <tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Valor</th></tr>
+          </thead><tbody></tbody></table>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Totais (Período)</h3>
+        <ul id="totaisPeriodo" class="muted"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Baixa Final 10% -->
+  <section id="tab-baixa-final" class="card" hidden>
+    <h3>Baixa Final do Ciclo (devolver cotas + 10%)</h3>
+    <div class="grid cols-3">
+      <div><label>Ciclo</label><select id="cicloPayout"></select></div>
+      <div class="row" style="align-items:flex-end; gap:8px">
+        <button class="btn btn-primary" id="btnGerarPayout">Calcular Pagamento Final</button>
+        <button class="btn btn-ghost btn-mini" id="btnExportPayoutCSV">Exportar CSV</button>
+        <button class="btn btn-ghost btn-mini" id="btnExportPayoutXLS">Exportar Excel</button>
+      </div>
+    </div>
+    <div style="margin-top:8px; overflow:auto">
+      <table id="tabelaPayouts"><thead>
+        <tr><th>Correntista</th><th>Total Cotas</th><th>10%</th><th>Devolver</th><th>Ação</th></tr>
+      </thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <!-- Config -->
+  <section id="tab-config" class="card" hidden>
+    <h3>Configurações & Utilitários</h3>
+
+    <div class="grid cols-3">
+      <div><label>Início do Ciclo</label><input type="month" id="cfgInicio"></div>
+      <div><label>Fim do Ciclo</label><input type="month" id="cfgFim"></div>
+      <div class="row" style="align-items:flex-end">
+        <button class="btn btn-primary" id="btnSalvarCfg">Salvar Ciclo</button>
+      </div>
+    </div>
+
+    <hr style="border-color:#223047; opacity:.3; margin:16px 0">
+
+    <div>
+      <h3 style="margin:0 0 8px">Backup (Exportar/Importar JSON)</h3>
+      <div class="row">
+        <button class="btn btn-ghost btn-mini" id="btnExportarBackup">Exportar Backup (.json)</button>
+        <input type="file" id="inputImportBackup" accept=".json,application/json" hidden>
+        <button class="btn btn-ghost btn-mini" id="btnImportarBackup">Importar Backup (.json)</button>
+        <span class="hint">Importar exige estar desbloqueado.</span>
+      </div>
+    </div>
+
+    <hr style="border-color:#223047; opacity:.3; margin:16px 0">
+
+    <div>
+      <h3 style="margin:0 0 8px">Bloqueio por PIN</h3>
+      <div class="grid cols-3">
+        <div><label>PIN atual</label><input type="password" id="pinAtual" placeholder="se existir"></div>
+        <div><label>Novo PIN</label><input type="password" id="pinNovo" placeholder="4-10 dígitos"></div>
+        <div class="row" style="align-items:flex-end; gap:8px">
+          <button class="btn btn-ghost btn-mini" id="btnDefinirPIN">Definir/Alterar PIN</button>
+          <button class="btn btn-ghost btn-mini" id="btnBloquear">Bloquear</button>
+          <button class="btn btn-ghost btn-mini" id="btnDesbloquear">Desbloquear</button>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:6px">Status: <b id="lockStatus">—</b></div>
+    </div>
+  </section>
+
+  <footer>
+    <div>Plataforma © 2025 — Gestão simples e clara. Desenvolvido por <b>Marcelo</b>.</div>
+  </footer>
+</main>
+
+<!-- CONFIRM OVERLAY -->
+<div id="confirmOverlay" aria-hidden="true">
+  <div class="cf-modal">
+    <h4 id="confirmTitle">Confirmar ação</h4>
+    <div id="confirmText" class="muted">Tem certeza?</div>
+    <div class="cf-btns">
+      <button class="cf-no" id="confirmNo">Não</button>
+      <button class="cf-yes" id="confirmYes">Sim</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== Utils ===== */
+const BRL = new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL'});
+const fmt  = n => BRL.format(Number(n||0));
+const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const today= () => new Date().toISOString().slice(0,10);
+const monthStr = d => (d||'').slice(0,7);
+const addMonths = (dateStr, m=1) => {
+  const d=new Date(dateStr||today()); d.setMonth(d.getMonth()+m);
+  return d.toISOString().slice(0,10);
+};
+function download(filename, content, mime='application/octet-stream'){
+  const blob = new Blob([content], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+/* ===== Modal de Confirmação ===== */
+function confirmDialog(message, title='Confirmar ação'){
+  return new Promise(resolve=>{
+    const ov=document.getElementById('confirmOverlay');
+    const txt=document.getElementById('confirmText');
+    const ttl=document.getElementById('confirmTitle');
+    const yes=document.getElementById('confirmYes');
+    const no =document.getElementById('confirmNo');
+    function close(v){
+      yes.onclick = no.onclick = null;
+      ov.style.display='none'; ov.setAttribute('aria-hidden','true');
+      resolve(v);
+    }
+    ttl.textContent = title;
+    txt.textContent = message;
+    ov.style.display='flex'; ov.setAttribute('aria-hidden','false');
+    yes.focus();
+    yes.onclick = ()=>close(true);
+    no.onclick  = ()=>close(false);
+    ov.addEventListener('keydown', (e)=>{
+      if(e.key==='Escape'){ e.preventDefault(); close(false); }
+      if(e.key==='Enter'){ e.preventDefault(); close(true); }
+    }, {once:true});
+  });
+}
+
+/* ===== Estado ===== */
+const KEY = 'plataforma_cotas_v1';
+const state = JSON.parse(localStorage.getItem(KEY) || 'null') || {
+  config: { inicio: '2024-12', fim: '2025-11' },
+  pessoas: [], cotas: [], emprestimos: [], retornos: [], payouts: [],
+  cashbacks: [],   // NOVO: controle de cashbacks
+  seqEmprestimo: 1, lock: { pin:'', locked:false }
+};
+if (!state.cashbacks) state.cashbacks = [];
+if (!state.lock) state.lock = {pin:'', locked:false};
+if (typeof state.seqEmprestimo!=='number') state.seqEmprestimo = 1;
+
+function save(){
+  localStorage.setItem(KEY, JSON.stringify(state));
+  renderAll();
+}
+function ensureNotLocked(){
+  if(state.lock && state.lock.locked){
+    alert('Edição bloqueada por PIN. Desbloqueie em Config.'); return false;
+  }
+  return true;
+}
+
+/* Bootstrap 15 pessoas */
+if(state.pessoas.length===0){
+  for(let i=1;i<=15;i++) state.pessoas.push({id:uid(), nome:`Pessoa ${i}`});
+  save();
+}
+
+/* ===== Tabs ===== */
+function showTab(id){
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab === id);
+  });
+  document.querySelectorAll('main section.card').forEach(s=>{
+    s.hidden = (s.id !== id);
+  });
+}
+function setupTabs(){
+  const nav=document.querySelector('header nav');
+  nav.addEventListener('click',(e)=>{
+    const btn=e.target.closest('.tab-btn');
+    if(!btn) return;
+    showTab(btn.dataset.tab);
+  });
+}
+
+/* ===== Cálculos ===== */
+function cicloAtualLabel(){ return state.config.inicio + ' → ' + state.config.fim; }
+function cicloDeData(dateStr){
+  const m = monthStr(dateStr);
+  const ini = state.config.inicio;
+  const fim = state.config.fim;
+  if (m >= ini && m <= fim) return ini + '→' + fim;
+  return m;
+}
+function jurosDoCiclo(e){ return Number(e.principal) * Number(e.percentual); }
+function devidoEmprestimo(e){
+  const juros = jurosDoCiclo(e);
+  const total = Number(e.principal) + juros + Number(e.extra || 0);
+  const pagos = state.retornos.filter(r=>r.emprestimoId===e.id)
+                  .reduce((s,r)=>s+Number(r.valor),0);
+  return { total, pagos, aberto: (pagos + 0.01) < total };
+}
+function totalCotas(cicloLabel){
+  return state.cotas.filter(c=>!cicloLabel || c.ciclo===cicloLabel)
+           .reduce((s,c)=>s+Number(c.valor),0);
+}
+function passivo10(cicloLabel){
+  const base = totalCotas(cicloLabel)*0.10;
+  const pagos10 = state.payouts
+    .filter(p=>!cicloLabel || p.ciclo===cicloLabel)
+    .reduce((s,p)=> s + Number(p.valor)/11, 0);
+  return Math.max(0, base - pagos10);
+}
+function jurosRecebidos(){
+  return state.retornos
+    .filter(r=>r.tipo!=='principal')
+    .reduce((s,r)=>s+Number(r.valor),0);
+}
+function totalRetornos(){
+  return state.retornos.reduce((s,r)=>s+Number(r.valor),0);
+}
+function totalPayouts(){
+  return state.payouts.reduce((s,p)=>s+Number(p.valor),0);
+}
+function totalEmprestimosLiberados(){
+  return state.emprestimos.reduce((s,e)=>s+Number(e.principal),0);
+}
+function saldoFundo(){
+  return totalCotas() + totalRetornos() - totalEmprestimosLiberados() - totalPayouts();
+}
+
+/* ===== Render Helpers ===== */
+function setText(id, text){ const el=document.getElementById(id); if(el) el.textContent = text; }
+function clear(el){ while(el.firstChild) el.removeChild(el.firstChild); }
+function empShortId(e){ const m=(e.codigo||'').match(/(\d+)/); return m? m[1] : (e.codigo||'—'); }
+
+/* ===== Header & KPIs ===== */
+function renderHeader(){
+  setText('cycleLabel', cicloAtualLabel());
+  setText('saldoFundo', fmt(saldoFundo()));
+}
+function renderKPIs(){
+  const label = state.config.inicio + '→' + state.config.fim;
+  setText('kpiTotalCotas', fmt(totalCotas(label)));
+  setText('kpiPassivo10', fmt(passivo10(label)));
+  setText('kpiJuros', fmt(jurosRecebidos()));
+}
+
+/* ===== Cotas ===== */
+function renderCotas(){
+  const sel = document.getElementById('cotistaSelect');
+  const prev = sel.value || null;
+
+  clear(sel);
+  state.pessoas.forEach(p=>{
+    const o=document.createElement('option');
+    o.value=p.id; o.textContent=p.nome;
+    sel.appendChild(o);
+  });
+  if (prev && Array.prototype.some.call(sel.options, o=>o.value===prev)) {
+    sel.value = prev;
+  }
+
+  const dataEl = document.getElementById('dataCota');
+  if (!dataEl.value) dataEl.value = today();
+
+  const filtroId = sel.value || null;
+
+  const tb=document.querySelector('#tabelaCotas tbody');
+  clear(tb);
+  state.cotas
+    .filter(c=> !filtroId || c.pessoaId === filtroId)
+    .slice()
+    .sort((a,b)=>a.data.localeCompare(b.data))
+    .forEach(c=>{
+      const p=state.pessoas.find(x=>x.id===c.pessoaId);
+      const tr=document.createElement('tr');
+      tr.innerHTML=
+        '<td>'+c.data+'</td>'+
+        '<td>'+(p? p.nome:'—')+'</td>'+
+        '<td class="val-in">'+fmt(c.valor)+'</td>'+
+        '<td class="muted">'+fmt(c.valor*0.10)+'</td>'+
+        '<td class="muted">'+c.ciclo+'</td>'+
+        '<td><button class="btn btn-ghost" data-del-cota="'+c.id+'">Excluir</button></td>';
+      tb.appendChild(tr);
+    });
+}
+
+/* ===== Empréstimos ===== */
+function renderEmprestimos(){
+  const tb=document.querySelector('#tabelaEmprestimos tbody'); clear(tb);
+  state.emprestimos.slice().sort((a,b)=>a.data.localeCompare(b.data)).forEach(e=>{
+    const d=devidoEmprestimo(e);
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td>'+e.data+'</td>'+
+      '<td>'+e.tomador+'<div class="muted mono">'+(e.codigo||'')+' • Venc.: '+(e.vencimento||'—')+'</div></td>'+
+      '<td class="val-out">'+fmt(e.principal)+'</td>'+
+      '<td>'+Math.round(Number(e.percentual)*100)+'%</td>'+
+      '<td>'+fmt(d.total)+'</td>'+
+      '<td class="'+((d.pagos + 0.009 >= d.total)?'val-in':'')+'">'+fmt(d.pagos)+'</td>'+
+      '<td>'+(d.aberto? '<span class="pill out">Aberto</span>':'<span class="pill in">Fechado</span>')+'</td>'+
+      '<td><button class="btn btn-ghost" data-close-emp="'+e.id+'">'+(d.aberto? 'Fechar':'Reabrir')+'</button> '+
+          '<button class="btn btn-ghost" data-del-emp="'+e.id+'">Excluir</button></td>';
+    tb.appendChild(tr);
+  });
+
+  const sel=document.getElementById('retornoEmprestimo'); clear(sel);
+  state.emprestimos.forEach(e=>{
+    const d=devidoEmprestimo(e); if(!d.aberto) return;
+    const opt=document.createElement('option');
+    opt.value=e.id;
+    opt.textContent='ID '+empShortId(e)+' • '+e.tomador+' • '+fmt(e.principal)+' • '+Math.round(Number(e.percentual)*100)+'% • Devido '+fmt(d.total-d.pagos);
+    sel.appendChild(opt);
+  });
+  if(!sel.options.length){
+    const o=document.createElement('option'); o.textContent='— nenhum empréstimo aberto —'; sel.appendChild(o);
+  }
+}
+
+/* ===== Resumo de Cashbacks ===== */
+function renderCashbacks(){
+  const tb=document.querySelector('#tabelaCashbacks tbody'); clear(tb);
+  if (!state.cashbacks || !state.cashbacks.length){
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td class="muted" colspan="2">Nenhum cashback gerado.</td>';
+    tb.appendChild(tr);
+    return;
+  }
+  const mapa = {};
+  state.cashbacks.forEach(cb=>{
+    mapa[cb.tomador] = (mapa[cb.tomador]||0) + Number(cb.valor);
+  });
+  Object.keys(mapa).sort((a,b)=>a.localeCompare(b)).forEach(nome=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+nome+'</td><td class="val-in">'+fmt(mapa[nome])+'</td>';
+    tb.appendChild(tr);
+  });
+}
+
+/* ===== Retornos ===== */
+function renderRetornos(){
+  const tb=document.querySelector('#tabelaRetornos tbody'); clear(tb);
+  state.retornos.slice().sort((a,b)=>a.data.localeCompare(b.data)).forEach(r=>{
+    const e=state.emprestimos.find(x=>x.id===r.emprestimoId);
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td>'+r.data+'</td>'+
+      '<td>'+(e? e.tomador:'—')+'</td>'+
+      '<td class="val-in">'+fmt(r.valor)+'</td>'+
+      '<td>'+r.tipo+'</td>'+
+      '<td class="muted">'+(e? 'ID '+empShortId(e):'—')+'</td>'+
+      '<td><button class="btn btn-ghost" data-del-ret="'+r.id+'">Excluir</button></td>';
+    tb.appendChild(tr);
+  });
+}
+
+/* ===== Pessoas ===== */
+function renderPessoas(){
+  const tb=document.querySelector('#tabelaPessoas tbody'); clear(tb);
+  const cicloLabel = state.config.inicio + '→' + state.config.fim;
+  state.pessoas.forEach((p,i)=>{
+    const tot=state.cotas
+      .filter(c=>c.pessoaId===p.id && c.ciclo===cicloLabel)
+      .reduce((s,c)=>s+Number(c.valor),0);
+    const qtd=state.cotas
+      .filter(c=>c.pessoaId===p.id && c.ciclo===cicloLabel).length;
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td>'+(i+1)+'</td>'+
+      '<td><input data-pessoa-nome="'+p.id+'" value="'+p.nome+'"/></td>'+
+      '<td class="val-in">'+fmt(tot)+'</td>'+
+      '<td class="muted">'+fmt(tot*0.10)+'</td>'+
+      '<td class="muted">'+Math.min(qtd,12)+'/12</td>'+
+      '<td><button class="btn btn-ghost" data-del-pessoa="'+p.id+'">Remover</button></td>';
+    tb.appendChild(tr);
+  });
+}
+
+/* ===== Resumo & Filtros ===== */
+let lastResumoRows = [];
+function populateFilterCombos(){
+  const tSel=document.getElementById('filtroTomador');
+  const cSel=document.getElementById('filtroCorrentista');
+  const setTom=new Set(state.emprestimos.map(e=>e.tomador).filter(Boolean));
+  const setCor=new Set(state.pessoas.map(p=>p.nome).filter(Boolean));
+  function refill(sel, items){
+    const cur = sel.value || 'todos';
+    sel.innerHTML='';
+    const optAll=document.createElement('option'); optAll.value='todos'; optAll.textContent='Todos'; sel.appendChild(optAll);
+    Array.from(items).sort((a,b)=>a.localeCompare(b)).forEach(v=>{
+      const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o);
+    });
+    sel.value = (Array.from(items).indexOf(cur)>=0)? cur : 'todos';
+  }
+  refill(tSel,setTom);
+  refill(cSel,setCor);
+}
+function aplicarFiltros(){
+  const de=document.getElementById('filtroDe').value || '0000-01-01';
+  const ate=document.getElementById('filtroAte').value || '9999-12-31';
+  const tipo=document.getElementById('filtroTipo').value;
+  const tomSel=document.getElementById('filtroTomador').value || 'todos';
+  const corSel=document.getElementById('filtroCorrentista').value || 'todos';
+
+  const linhas=[]; let totIn=0, totOut=0;
+  const hoje=today();
+
+  if(tipo==='todos' || tipo==='cotas'){
+    state.cotas.filter(c=>c.data>=de && c.data<=ate).forEach(c=>{
+      const p=state.pessoas.find(x=>x.id===c.pessoaId);
+      const nome=p? p.nome:'—';
+      if(corSel!=='todos' && nome!==corSel) return;
+      linhas.push({data:c.data, tipo:'Cota', desc:nome, valor:Number(c.valor)});
+      totIn += Number(c.valor);
+    });
+  }
+  if(['todos','emprestimos','emp_vencidos','emp_avencer'].includes(tipo)){
+    state.emprestimos.forEach(e=>{
+      if(tomSel!=='todos' && e.tomador!==tomSel) return;
+      const vence = e.vencimento || e.data;
+      const d=devidoEmprestimo(e);
+      const aberto=d.aberto;
+      const vencido = aberto && vence < hoje;
+      const avencer = aberto && !vencido && (new Date(vence) - new Date(hoje) <= 7*24*3600*1000);
+      const dentroJanela = (tipo==='emprestimos' && e.data>=de && e.data<=ate)
+                        || (tipo==='emp_vencidos' && vencido && vence>=de && vence<=ate)
+                        || (tipo==='emp_avencer' && avencer && vence>=de && vence<=ate)
+                        || (tipo==='todos' && e.data>=de && e.data<=ate);
+      if(!dentroJanela) return;
+      const rot = tipo==='emp_vencidos' ? 'Empréstimo (Vencido)'
+                : tipo==='emp_avencer' ? 'Empréstimo (A vencer)'
+                : 'Empréstimo';
+      linhas.push({data:(tipo==='emp_vencidos' || tipo==='emp_avencer') ? vence : e.data,
+                   tipo:rot, desc:'[ID '+empShortId(e)+'] '+e.tomador+' • Venc.: '+(e.vencimento||'—'),
+                   valor:-Number(e.principal)});
+      totOut += Number(e.principal);
+    });
+  }
+  if(tipo==='todos' || tipo==='retornos'){
+    state.retornos.filter(r=>r.data>=de && r.data<=ate).forEach(r=>{
+      const e=state.emprestimos.find(x=>x.id===r.emprestimoId);
+      const desc=e? '[ID '+empShortId(e)+'] '+e.tomador : '—';
+      if(tomSel!=='todos' && e && e.tomador!==tomSel) return;
+      linhas.push({data:r.data, tipo:'Retorno '+r.tipo, desc:desc, valor:Number(r.valor)});
+      totIn+=Number(r.valor);
+    });
+  }
+  if(tipo==='todos' || tipo==='payouts'){
+    state.payouts.filter(p=>p.data>=de && p.data<=ate).forEach(p=>{
+      const pes=state.pessoas.find(x=>x.id===p.pessoaId);
+      linhas.push({data:p.data, tipo:'Baixa Final', desc:pes? pes.nome:'—', valor:-Number(p.valor)});
+      totOut+=Number(p.valor);
+    });
+  }
+
+  linhas.sort((a,b)=>a.data.localeCompare(b.data));
+  lastResumoRows = linhas.slice();
+
+  const tb=document.querySelector('#tabelaMovimentos tbody'); clear(tb);
+  for(const l of linhas){
+    const cls=(l.valor>=0)?'val-in':'val-out';
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+l.data+'</td><td>'+l.tipo+'</td><td>'+l.desc+'</td><td class="'+cls+'">'+fmt(l.valor)+'</td>';
+    tb.appendChild(tr);
+  }
+  const ul=document.getElementById('totaisPeriodo'); ul.innerHTML='';
+  ul.innerHTML+='<li>Entradas: <b>'+fmt(totIn)+'</b></li>';
+  ul.innerHTML+='<li>Saídas: <b>'+fmt(totOut)+'</b></li>';
+  ul.innerHTML+='<li>Saldo Líquido: <b>'+fmt(totIn - totOut)+'</b></li>';
+}
+
+/* ===== Backup ===== */
+function exportBackup(){
+  const json = JSON.stringify(state, null, 2);
+  download('backup_plataforma.json', json, 'application/json;charset=utf-8;');
+}
+
+/* ✅ IMPORTAÇÃO CORRIGIDA (sem mexer em cálculo/layout/dados)
+   - Garante que o input chama a função
+   - Se estiver bloqueado, pede o PIN e desbloqueia para importar
+   - Valida estrutura mínima do JSON
+   - Mostra toast de sucesso e recarrega */
+function importBackup(file){
+  // Se estiver bloqueado, pede PIN (sem depender de botão de desbloqueio)
+  if(state.lock && state.lock.locked){
+    const pin = prompt('Painel bloqueado. Digite o PIN para importar o backup:');
+    if(pin === null) return; // cancelou
+    if(pin !== (state.lock.pin || '')){
+      showToast('PIN incorreto. Importação cancelada.', true);
+      return;
+    }
+    state.lock.locked = false; // desbloqueia para permitir importar
+    localStorage.setItem(KEY, JSON.stringify(state)); // persiste desbloqueio antes do reload
+  }
+
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const data = JSON.parse(e.target.result);
+
+      // validação mínima para evitar "importar nada"
+      if(!data || !data.config) throw new Error('Formato inválido: faltou "config".');
+      if(!Array.isArray(data.pessoas)) throw new Error('Formato inválido: "pessoas" precisa ser lista.');
+      if(!Array.isArray(data.cotas)) throw new Error('Formato inválido: "cotas" precisa ser lista.');
+      if(!Array.isArray(data.emprestimos)) data.emprestimos = [];
+      if(!Array.isArray(data.retornos)) data.retornos = [];
+      if(!Array.isArray(data.payouts)) data.payouts = [];
+      if(!Array.isArray(data.cashbacks)) data.cashbacks = [];
+      if(!data.lock) data.lock = { pin: (state.lock && state.lock.pin) || '', locked: false };
+      if(typeof data.seqEmprestimo !== 'number') data.seqEmprestimo = 1;
+
+      localStorage.setItem(KEY, JSON.stringify(data));
+      showToast('Backup importado com sucesso. Recarregando...');
+      setTimeout(()=>location.reload(), 450);
+    }catch(err){
+      alert('Falha ao importar: ' + err.message);
+    }
+  };
+  reader.onerror = ()=> alert('Falha ao ler o arquivo.');
+  reader.readAsText(file);
+}
+
+/* ===== Toast ===== */
+let toastTimer=null;
+function showToast(msg, warn){
+  if(document.querySelector('.toast')) document.querySelector('.toast').remove();
+  const t=document.createElement('div'); t.className='toast'; t.innerHTML='<span>'+msg+'</span>';
+  if(warn){ t.style.borderColor='#7f1d1d'; }
+  document.body.appendChild(t);
+  clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.remove(); }, 2600);
+}
+
+/* ===== PIN ===== */
+function renderLockStatus(){
+  const hasPin = (state.lock && state.lock.pin && state.lock.pin.length>0);
+  const lbl = (state.lock && state.lock.locked) ? 'Bloqueado' : 'Desbloqueado';
+  document.getElementById('lockStatus').textContent = lbl + (hasPin ? ' • PIN definido' : ' • sem PIN');
+}
+
+/* ===== Baixa Final ===== */
+function renderCiclosPayout(){
+  const sel=document.getElementById('cicloPayout'); clear(sel);
+  const set=new Set(state.cotas.map(c=>c.ciclo)); const arr=Array.from(set.values());
+  if(arr.length===0){ const opt=document.createElement('option'); opt.textContent='—'; sel.appendChild(opt); return; }
+  arr.forEach(function(c){ const opt=document.createElement('option'); opt.value=c; opt.textContent=c; sel.appendChild(opt); });
+}
+function getPayoutRows(ciclo){
+  const porPessoa=new Map();
+  state.cotas.filter(c=>c.ciclo===ciclo).forEach(function(c){
+    porPessoa.set(c.pessoaId,(porPessoa.get(c.pessoaId)||0) + Number(c.valor));
+  });
+  const rows = [];
+  state.pessoas.forEach(function(p){
+    const tot=porPessoa.get(p.id)||0; if(tot<=0) return;
+    const dez=tot*0.10; const devolver=tot+dez;
+    rows.push({pessoaId:p.id, nome:p.nome, total:tot, dez:dez, devolver:devolver});
+  });
+  return rows;
+}
+function gerarTabelaPayout(){
+  const ciclo=document.getElementById('cicloPayout').value;
+  const tb=document.querySelector('#tabelaPayouts tbody'); clear(tb);
+  const rows = getPayoutRows(ciclo);
+  rows.forEach(function(r){
+    const ja = state.payouts.some(function(p){ return p.pessoaId===r.pessoaId && p.ciclo===ciclo; });
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td>'+r.nome+' '+(ja? '<span class="pill in" style="margin-left:6px;">PAGO</span>':'')+'</td>'+
+      '<td class="val-in">'+fmt(r.total)+'</td>'+
+      '<td class="muted">'+fmt(r.dez)+'</td>'+
+      '<td class="val-out"><b>'+fmt(r.devolver)+'</b></td>'+
+      '<td>'+ (ja? '<button class="btn btn-ghost" data-estornar="'+r.pessoaId+'::'+ciclo+'">Estornar</button>'
+                 : '<button class="btn btn-primary" data-payout="'+r.pessoaId+'::'+ciclo+'::'+r.devolver+'">Registrar Baixa</button>') +'</td>';
+    tb.appendChild(tr);
+  });
+}
+function exportPayout(ciclo, mode){
+  if(!ciclo || ciclo==='—'){ alert('Selecione um ciclo.'); return; }
+  const rows = getPayoutRows(ciclo);
+  if(rows.length===0){ alert('Não há dados para exportar neste ciclo.'); return; }
+
+  if(mode==='csv'){
+    const header = ['Correntista','Total Cotas','10%','Devolver'];
+    const csv = [header.join(';')].concat(
+      rows.map(function(r){ return [r.nome, r.total.toFixed(2).replace('.',','), r.dez.toFixed(2).replace('.',','), r.devolver.toFixed(2).replace('.',',')].join(';'); })
+    ).join('\n');
+    download('baixa_final_'+ciclo+'.csv', csv, 'text/csv;charset=utf-8;');
+  }else{
+    const body = rows.map(function(r){ return '<tr><td>'+r.nome+'</td><td>'+r.total.toFixed(2)+'</td><td>'+r.dez.toFixed(2)+'</td><td>'+r.devolver.toFixed(2)+'</td></tr>'; }).join('');
+    const table = '<table border="1"><tr><th>Correntista</th><th>Total Cotas</th><th>10%</th><th>Devolver</th></tr>'+body+'</table>';
+    download('baixa_final_'+ciclo+'.xls', table, 'application/vnd.ms-excel');
+  }
+}
+
+/* ===== Render All ===== */
+function renderAll(){
+  renderHeader();
+  renderKPIs();
+  renderCotas();
+  renderEmprestimos();
+  renderCashbacks();
+  renderRetornos();
+  renderPessoas();
+  renderCiclosPayout();
+  populateFilterCombos();
+}
+
+/* ===== Eventos ===== */
+addEventListener('click', async e=>{
+  const t=e.target;
+
+  /* COTAS */
+  if(t.id==='btnAddCota'){
+    if(!ensureNotLocked()) return;
+    const pessoaId=document.getElementById('cotistaSelect').value;
+    const valor=Number(document.getElementById('valorCota').value||0);
+    const data=document.getElementById('dataCota').value || today();
+    if(!pessoaId || valor<=0){ alert('Selecione a pessoa e informe um valor > 0'); return; }
+    state.cotas.push({id:uid(), pessoaId, valor, data, ciclo:cicloDeData(data)});
+    save();
+    showToast('Cota lançada.');
+  }
+  if(t.dataset.delCota){
+    if(!ensureNotLocked()) return;
+    const id=t.dataset.delCota;
+    const ok = await confirmDialog('Excluir este lançamento de cota?', 'Excluir cota');
+    if(!ok) return;
+    state.cotas=state.cotas.filter(c=>c.id!==id); save(); showToast('Lançamento de cota removido.', true);
+  }
+
+  /* EMPRÉSTIMOS */
+  if(t.id==='btnAddEmprestimo'){
+    if(!ensureNotLocked()) return;
+    const tomador=document.getElementById('emprestTomador').value.trim();
+    const principal=Number(document.getElementById('emprestPrincipal').value||0);
+    const percentual=Number(document.getElementById('emprestPercentual').value);
+    const data=document.getElementById('emprestData').value || today();
+    let venc=document.getElementById('emprestVenc').value;
+    const status=document.getElementById('emprestStatus').value;
+    if(!tomador || principal<=0){ alert('Informe o tomador e o principal (>0)'); return; }
+    if(!venc) venc = addMonths(data,1);
+    const idEmp = uid();
+    state.emprestimos.push({
+      id:idEmp,
+      codigo:'EMP-'+String(state.seqEmprestimo++).padStart(4,'0'),
+      tomador, principal, percentual, data, status, ciclos:1, extra:0, vencimento:venc
+    });
+
+    // Cashback 5% se principal > 250
+    if (principal > 250){
+      const valorCb = Number((principal * 0.05).toFixed(2));
+      state.cashbacks.push({
+        id: uid(),
+        emprestimoId: idEmp,
+        tomador,
+        valor: valorCb,
+        data
+      });
+      showToast('Cashback de '+fmt(valorCb)+' gerado para '+tomador+'.');
+    }
+
+    save();
+  }
+  if(t.dataset.closeEmp){
+    if(!ensureNotLocked()) return;
+    const eId=t.dataset.closeEmp; const emp=state.emprestimos.find(x=>x.id===eId);
+    if(emp){ emp.status = (emp.status==='aberto')?'fechado':'aberto'; save(); }
+  }
+  if(t.dataset.delEmp){
+    if(!ensureNotLocked()) return;
+    const id=t.dataset.delEmp;
+    const ok = await confirmDialog('Excluir este empréstimo?', 'Excluir empréstimo');
+    if(!ok) return;
+    state.emprestimos=state.emprestimos.filter(x=>x.id!==id);
+    state.retornos=state.retornos.filter(r=>r.emprestimoId!==id);
+    state.cashbacks=state.cashbacks.filter(cb=>cb.emprestimoId!==id);
+    save(); showToast('Empréstimo removido.', true);
+  }
+
+  /* RETORNOS */
+  if(t.id==='btnAddRetorno'){
+    if(!ensureNotLocked()) return;
+    const emprestimoId=document.getElementById('retornoEmprestimo').value;
+    const valorTotal=Number(document.getElementById('retornoValor').value||0);
+    const data=document.getElementById('retornoData').value || today();
+    const tipo=document.getElementById('retornoTipo').value;
+    if(!emprestimoId || valorTotal<=0){ alert('Selecione o empréstimo e um valor > 0'); return; }
+
+    const emp=state.emprestimos.find(x=>x.id===emprestimoId);
+    if(!emp){ alert('Empréstimo não encontrado.'); return; }
+
+    const dAntes=devidoEmprestimo(emp);
+    const jurosCiclo=jurosDoCiclo(emp);
+
+    if(tipo==='juros'){
+      state.retornos.push({id:uid(), emprestimoId, valor:valorTotal, data, tipo:'juros'});
+      if(valorTotal + 0.009 >= jurosCiclo){
+        emp.ciclos=Number(emp.ciclos||1)+1;
+        emp.vencimento=addMonths(data,1);
+        emp.status='aberto';
+      }
+      save(); showToast('Retorno (juros) registrado.'); return;
+    }
+    if(tipo==='principal'){
+      state.retornos.push({id:uid(), emprestimoId, valor:valorTotal, data, tipo:'principal'});
+      const restante = dAntes.total - (dAntes.pagos + valorTotal);
+      if(restante > 0){
+        const extra = restante * Number(emp.percentual);
+        emp.extra = Number(emp.extra||0) + extra;
+        emp.vencimento = addMonths(data,1);
+        emp.status='aberto';
+      }else{
+        emp.status='fechado'; emp.vencimento = data;
+      }
+      save(); showToast('Retorno (principal) registrado.'); return;
+    }
+    if(tipo==='misto'){
+      const parteJuros = Math.min(valorTotal, jurosCiclo);
+      const partePrincipal = Math.max(0, valorTotal - parteJuros);
+      if(parteJuros>0) state.retornos.push({id:uid(), emprestimoId, valor:parteJuros, data, tipo:'juros'});
+      if(parteJuros + 0.009 >= jurosCiclo){
+        emp.ciclos=Number(emp.ciclos||1)+1; emp.vencimento=addMonths(data,1); emp.status='aberto';
+      }
+      if(partePrincipal>0){
+        state.retornos.push({id:uid(), emprestimoId, valor:partePrincipal, data, tipo:'principal'});
+        const restante = dAntes.total - (dAntes.pagos + parteJuros + partePrincipal);
+        if(restante > 0){
+          const extra = restante * Number(emp.percentual);
+          emp.extra = Number(emp.extra||0) + extra;
+          emp.vencimento = addMonths(data,1); emp.status='aberto';
+        }else{
+          emp.status='fechado'; emp.vencimento=data;
+        }
+      }
+      save(); showToast('Retorno (misto) registrado.'); return;
+    }
+  }
+  if(t.dataset.delRet){
+    if(!ensureNotLocked()) return;
+    const id=t.dataset.delRet;
+    const ok = await confirmDialog('Excluir este retorno?', 'Excluir retorno');
+    if(!ok) return;
+    state.retornos=state.retornos.filter(r=>r.id!==id); save(); showToast('Retorno removido.', true);
+  }
+
+  /* PESSOAS */
+  if(t.id==='btnAddPessoa'){
+    if(!ensureNotLocked()) return;
+    state.pessoas.push({id:uid(), nome:'Novo Nome'}); save();
+  }
+  if(t.dataset.delPessoa){
+    if(!ensureNotLocked()) return;
+    const id=t.dataset.delPessoa;
+    const ok = await confirmDialog('Remover este correntista?', 'Remover correntista');
+    if(!ok) return;
+    state.pessoas=state.pessoas.filter(p=>p.id!==id);
+    state.cotas=state.cotas.filter(c=>c.pessoaId!==id);
+    save(); showToast('Correntista removido.', true);
+  }
+  if(t.id==='btnResetDados'){
+    if(!ensureNotLocked()) return;
+    if(confirm('Tem certeza? Isto apagará todos os dados (cotas, empréstimos, retornos, payouts, cashbacks).')){
+      state.cotas=[]; state.emprestimos=[]; state.retornos=[]; state.payouts=[]; state.cashbacks=[];
+      save();
+    }
+  }
+
+  /* RESUMO / EXPORT / BAIXA FINAL */
+  if(t.id==='btnAplicarFiltros') aplicarFiltros();
+  if(t.id==='btnLimparFiltros'){
+    document.getElementById('filtroDe').value='';
+    document.getElementById('filtroAte').value='';
+    document.getElementById('filtroTipo').value='todos';
+    document.getElementById('filtroTomador').value='todos';
+    document.getElementById('filtroCorrentista').value='todos';
+    aplicarFiltros();
+  }
+  if(t.id==='btnExportResumoCSV') exportResumo('csv');
+  if(t.id==='btnExportResumoXLS') exportResumo('xls');
+
+  if(t.id==='btnGerarPayout') gerarTabelaPayout();
+  if(t.id==='btnExportPayoutCSV'){ const ciclo=document.getElementById('cicloPayout').value; exportPayout(ciclo,'csv'); }
+  if(t.id==='btnExportPayoutXLS'){ const ciclo=document.getElementById('cicloPayout').value; exportPayout(ciclo,'xls'); }
+
+  if(t.dataset.payout){
+    if(!ensureNotLocked()) return;
+    const parts = t.dataset.payout.split('::');
+    const pessoaId = parts[0], ciclo = parts[1], valor = parts[2];
+    if (state.payouts.some(function(p){ return p.pessoaId === pessoaId && p.ciclo === ciclo; })) {
+      alert('Baixa já registrada para essa pessoa neste ciclo.');
+      return;
+    }
+    const data = today();
+    state.payouts.push({id: uid(), pessoaId:pessoaId, ciclo:ciclo, valor: Number(valor), data:data});
+    save(); gerarTabelaPayout(); showToast('Baixa registrada.');
+  }
+  if(t.dataset.estornar){
+    if(!ensureNotLocked()) return;
+    const parts = t.dataset.estornar.split('::');
+    const pessoaId = parts[0], ciclo = parts[1];
+    state.payouts = state.payouts.filter(function(p){ return !(p.pessoaId===pessoaId && p.ciclo===ciclo); });
+    save(); gerarTabelaPayout(); showToast('Baixa estornada.', true);
+  }
+
+  /* BACKUP */
+  if(t.id==='btnExportarBackup') exportBackup();
+  if(t.id==='btnImportarBackup') document.getElementById('inputImportBackup').click();
+
+  /* PIN */
+  if(t.id==='btnDefinirPIN'){
+    const elAtual=document.getElementById('pinAtual');
+    const elNovo =document.getElementById('pinNovo');
+    const atual=elAtual.value || '';
+    const novo =elNovo.value  || '';
+    if(state.lock && state.lock.pin){
+      if(atual!==state.lock.pin){ showToast('PIN atual incorreto.', true); return; }
+    }
+    if(novo.length<4 || novo.length>10){ showToast('PIN deve ter 4–10 dígitos.', true); return; }
+    state.lock={pin:novo, locked:false};
+    elAtual.value=''; elNovo.value=''; save(); renderLockStatus(); showToast('PIN atualizado.');
+  }
+  if(t.id==='btnBloquear'){
+    if(!(state.lock && state.lock.pin)){ showToast('Defina um PIN antes de bloquear.', true); return; }
+    state.lock.locked=true; save(); renderLockStatus(); showToast('Bloqueado.');
+  }
+  if(t.id==='btnDesbloquear'){
+    const elAtual=document.getElementById('pinAtual');
+    const atual=elAtual.value || '';
+    if(!(state.lock && state.lock.pin)){ showToast('Sem PIN definido.', true); return; }
+    if(atual!==state.lock.pin){ showToast('PIN incorreto.', true); return; }
+    state.lock.locked=false; save(); renderLockStatus(); showToast('Desbloqueado.');
+  }
+
+  /* SALVAR CICLO */
+  if(t.id==='btnSalvarCfg'){
+    if(!ensureNotLocked()) return;
+    const ini=document.getElementById('cfgInicio').value;
+    const fim=document.getElementById('cfgFim').value;
+    if(!ini || !fim){ alert('Informe início e fim do ciclo.'); return; }
+    state.config.inicio = ini;
+    state.config.fim    = fim;
+    save();
+    showToast('Ciclo atualizado.');
+  }
+});
+
+/* input nome pessoa */
+addEventListener('input', e=>{
+  const t = e.target; if(t.dataset.pessoaNome){
+    if(state.lock && state.lock.locked){
+      const pOrig = state.pessoas.find(x=>x.id===t.dataset.pessoaNome);
+      if(pOrig) t.value = pOrig.nome;
+      return;
+    }
+    const p = state.pessoas.find(x=>x.id===t.dataset.pessoaNome);
+    if(p) p.nome = t.value;
+  }
+});
+addEventListener('focusout', e=>{ const t = e.target; if(t.dataset.pessoaNome){ save(); }});
+
+/* retorno auto-preenchido */
+['retornoEmprestimo','retornoTipo'].forEach(function(id){
+  document.addEventListener('change', function(e){
+    if(e.target.id!==id) return;
+    const emprestimoId=document.getElementById('retornoEmprestimo').value;
+    const tipo=document.getElementById('retornoTipo').value;
+    const el=document.getElementById('retornoValor');
+    const emp=state.emprestimos.find(x=>x.id===emprestimoId);
+    if(!emp){ el.value=''; return; }
+    const d=devidoEmprestimo(emp);
+    const outstanding=Math.max(0, d.total - d.pagos);
+    const juros=jurosDoCiclo(emp);
+    if(tipo==='juros') el.value=Math.min(juros, outstanding).toFixed(2);
+    else if(tipo==='misto') el.value=outstanding.toFixed(2);
+    else el.value=Math.min(Number(emp.principal), outstanding).toFixed(2);
+  });
+});
+
+/* export resumo */
+function exportResumo(mode){
+  if(!lastResumoRows || !lastResumoRows.length){ alert('Nenhum movimento filtrado para exportar.'); return; }
+  if(mode==='csv'){
+    const header = ['Data','Tipo','Descrição','Valor'];
+    const csv = [header.join(';')].concat(
+      lastResumoRows.map(function(r){ return [
+        r.data,
+        r.tipo.replace(/;/g,','), 
+        r.desc.replace(/;/g,','), 
+        (Number(r.valor)||0).toFixed(2).replace('.',',')
+      ].join(';'); })
+    ).join('\n');
+    download('resumo_movimentos.csv', csv, 'text/csv;charset=utf-8;');
+  }else{
+    const rows = lastResumoRows.map(function(r){
+      return '<tr><td>'+r.data+'</td><td>'+r.tipo+'</td><td>'+r.desc+'</td><td>'+((Number(r.valor)||0).toFixed(2))+'</td></tr>';
+    }).join('');
+    const table = '<table border="1"><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Valor</th></tr>'+rows+'</table>';
+    download('resumo_movimentos.xls', table, 'application/vnd.ms-excel');
+  }
+}
+
+/* ===== Init ===== */
+function init(){
+  setupTabs();
+  document.getElementById('emprestData').value = today();
+  document.getElementById('emprestVenc').value  = addMonths(today(),1);
+  document.getElementById('retornoData').value  = today();
+
+  document.getElementById('cfgInicio').value = state.config.inicio;
+  document.getElementById('cfgFim').value    = state.config.fim;
+  document.getElementById('cotistaSelect').addEventListener('change', renderCotas);
+
+  // ✅ MUITO IMPORTANTE: o input precisa chamar importBackup (antes não chamava)
+  const importInput = document.getElementById('inputImportBackup');
+  importInput.addEventListener('change', (ev)=>{
+    const file = ev.target.files && ev.target.files[0];
+    if(file) importBackup(file);
+    ev.target.value = ''; // permite importar o mesmo arquivo de novo
+  });
+
+  renderAll();
+  aplicarFiltros();
+  renderLockStatus();
+  showTab('tab-lancamentos');
+}
+init();
+</script>
+</body>
+</html>
