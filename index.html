@@ -30,7 +30,6 @@
 
       --border:#223047;
       --border-2:#273548;
-
       --shadow: 0 10px 30px rgba(0,0,0,.35);
       --shadow-soft: 0 8px 22px rgba(0,0,0,.22);
 
@@ -533,8 +532,8 @@
       <div class="row" style="align-items:flex-end"><button class="btn btn-primary" id="btnAddRetorno">Adicionar Retorno</button></div>
     </div>
     <div class="hint" style="margin-top:8px">
-      Cada retorno <b>aumenta</b> o saldo do fundo. Se for juros, também soma no indicador de <b>Juros Recebidos</b>.
-      O tipo <b>Misto</b> já preenche o valor devido para quitar o empréstimo.
+      Cada retorno <b>aumenta</b> o saldo do fundo. Se tiver juros no pagamento, soma no indicador de <b>Juros Recebidos</b>.
+      <br><b>Regra:</b> o valor pago cobre <b>juros do mês</b> primeiro; o que sobrar <b>abate o principal</b>. Enquanto existir principal em aberto, os juros voltam no próximo mês (20% ou 30%).
     </div>
     <div style="margin-top:8px; overflow:auto">
       <table id="tabelaRetornos">
@@ -663,7 +662,7 @@
         <div class="row" style="align-items:flex-end; gap:8px">
           <button class="btn btn-ghost btn-mini" id="btnDefinirPIN">Definir/Alterar PIN</button>
           <button class="btn btn-ghost btn-mini" id="btnBloquear">Bloquear</button>
-          <button class="btn btn-ghost btn-mini" id="btnDesbloquear">Desbloquear</button>
+          <button class="btn btn-ghost btn-mini" id="btnDesbloquear">Desbloquequear</button>
         </div>
       </div>
       <div class="hint" style="margin-top:6px">Status: <b id="lockStatus">—</b></div>
@@ -718,6 +717,7 @@ function pad2(n){ return String(n).padStart(2,'0'); }
 function fileSafeTimestamp(d=new Date()){
   return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()) + '_' + pad2(d.getHours()) + '-' + pad2(d.getMinutes()) + '-' + pad2(d.getSeconds());
 }
+function round2(n){ return Number((Number(n||0)).toFixed(2)); }
 
 /* ===== Modal de Confirmação ===== */
 function confirmDialog(message, title='Confirmar ação'){
@@ -824,6 +824,43 @@ if (!state.cashbacks) state.cashbacks = [];
 if (!state.lock) state.lock = {pin:'', locked:false};
 if (typeof state.seqEmprestimo!=='number') state.seqEmprestimo = 1;
 
+/* ===== Compat / Migração suave (sem quebrar dados antigos) =====
+   Ajuste-chave:
+   - principalOriginal: valor liberado no ato (não muda, usado no saldo do fundo)
+   - saldo: principal em aberto (esse muda quando há abatimento)
+   - juros do mês sempre volta enquanto saldo>0
+*/
+function migrateEmprestimos(){
+  if(!Array.isArray(state.emprestimos)) state.emprestimos = [];
+  if(!Array.isArray(state.retornos)) state.retornos = [];
+
+  state.emprestimos.forEach(emp=>{
+    if(typeof emp.principalOriginal !== 'number') emp.principalOriginal = Number(emp.principal||0);
+
+    // saldo = principal em aberto; se não existir, calcula por abatimentos de principal já registrados
+    if(typeof emp.saldo !== 'number'){
+      const principalPago = state.retornos
+        .filter(r=>r.emprestimoId===emp.id && r.tipo==='principal')
+        .reduce((s,r)=>s+Number(r.valor||0),0);
+      const base = Math.max(0, Number(emp.principal||0) - principalPago);
+      emp.saldo = round2(base);
+    }
+
+    // Se estiver fechado, saldo deve ser 0 (coerência)
+    if(emp.status === 'fechado'){
+      emp.saldo = 0;
+    }
+
+    // Garantias de campos
+    if(typeof emp.ciclos !== 'number') emp.ciclos = 1;
+    if(!emp.vencimento) emp.vencimento = addMonths(emp.data||today(),1);
+    if(!emp.codigo && typeof state.seqEmprestimo === 'number'){
+      emp.codigo = 'EMP-'+String(state.seqEmprestimo++).padStart(4,'0');
+    }
+  });
+}
+migrateEmprestimos();
+
 function save(){
   localStorage.setItem(KEY, JSON.stringify(state));
   renderAll();
@@ -869,14 +906,27 @@ function cicloDeData(dateStr){
   if (m >= ini && m <= fim) return ini + '→' + fim;
   return m;
 }
-function jurosDoCiclo(e){ return Number(e.principal) * Number(e.percentual); }
-function devidoEmprestimo(e){
-  const juros = jurosDoCiclo(e);
-  const total = Number(e.principal) + juros + Number(e.extra || 0);
-  const pagos = state.retornos.filter(r=>r.emprestimoId===e.id)
-    .reduce((s,r)=>s+Number(r.valor),0);
-  return { total, pagos, aberto: (pagos + 0.01) < total };
+
+/* Juros e devido sempre em cima do SALDO (principal em aberto) */
+function jurosDoMes(emp){
+  const saldo = Number(emp.saldo||0);
+  return saldo * Number(emp.percentual||0);
 }
+function totalDevidoMes(emp){
+  const saldo = Number(emp.saldo||0);
+  return saldo + jurosDoMes(emp);
+}
+
+/* Exibe pago como histórico total; aberto/fechado pela existência de saldo (>0) e status */
+function devidoEmprestimo(emp){
+  const total = totalDevidoMes(emp);
+  const pagos = state.retornos
+    .filter(r=>r.emprestimoId===emp.id)
+    .reduce((s,r)=>s+Number(r.valor||0),0);
+  const aberto = (Number(emp.saldo||0) > 0.009) && (emp.status !== 'fechado');
+  return { total, pagos, aberto };
+}
+
 function totalCotas(cicloLabel){
   return state.cotas.filter(c=>!cicloLabel || c.ciclo===cicloLabel)
     .reduce((s,c)=>s+Number(c.valor),0);
@@ -890,12 +940,15 @@ function passivo10(cicloLabel){
 }
 function jurosRecebidos(){
   return state.retornos
-    .filter(r=>r.tipo!=='principal')
+    .filter(r=>r.tipo==='juros')
     .reduce((s,r)=>s+Number(r.valor),0);
 }
 function totalRetornos(){ return state.retornos.reduce((s,r)=>s+Number(r.valor),0); }
 function totalPayouts(){ return state.payouts.reduce((s,p)=>s+Number(p.valor),0); }
-function totalEmprestimosLiberados(){ return state.emprestimos.reduce((s,e)=>s+Number(e.principal),0); }
+/* IMPORTANT: saída do fundo é o principal liberado, não o saldo atual */
+function totalEmprestimosLiberados(){
+  return state.emprestimos.reduce((s,e)=> s + Number(e.principalOriginal ?? e.principal ?? 0), 0);
+}
 function saldoFundo(){ return totalCotas() + totalRetornos() - totalEmprestimosLiberados() - totalPayouts(); }
 
 /* ===== Render Helpers ===== */
@@ -963,13 +1016,18 @@ function renderEmprestimos(){
   state.emprestimos.slice().sort((a,b)=>a.data.localeCompare(b.data)).forEach(e=>{
     const d=devidoEmprestimo(e);
     const tr=document.createElement('tr');
+
+    const principalLiberado = Number(e.principalOriginal ?? e.principal ?? 0);
+    const saldoAberto = Number(e.saldo||0);
+    const jurosMes = jurosDoMes(e);
+
     tr.innerHTML=
       '<td>'+e.data+'</td>'+
       '<td>'+e.tomador+'<div class="muted mono">'+(e.codigo||'')+' • Venc.: '+(e.vencimento||'—')+'</div></td>'+
-      '<td class="val-out">'+fmt(e.principal)+'</td>'+
+      '<td class="val-out">'+fmt(principalLiberado)+'</td>'+
       '<td>'+Math.round(Number(e.percentual)*100)+'%</td>'+
-      '<td>'+fmt(d.total)+'</td>'+
-      '<td class="'+((d.pagos + 0.009 >= d.total)?'val-in':'')+'">'+fmt(d.pagos)+'</td>'+
+      '<td>'+fmt(saldoAberto + jurosMes)+'</td>'+
+      '<td class="'+((saldoAberto<=0.009)?'val-in':'')+'">'+fmt(d.pagos)+'</td>'+
       '<td>'+(d.aberto? '<span class="pill out">Aberto</span>':'<span class="pill in">Fechado</span>')+'</td>'+
       '<td><button class="btn btn-ghost" data-close-emp="'+e.id+'">'+(d.aberto? 'Fechar':'Reabrir')+'</button> '+
       '<button class="btn btn-ghost" data-del-emp="'+e.id+'">Excluir</button></td>';
@@ -981,9 +1039,17 @@ function renderEmprestimos(){
   state.emprestimos.forEach(e=>{
     const d=devidoEmprestimo(e);
     if(!d.aberto) return;
+
+    const jurosMes = jurosDoMes(e);
+    const totalMes = totalDevidoMes(e);
+
     const opt=document.createElement('option');
     opt.value=e.id;
-    opt.textContent='ID '+empShortId(e)+' • '+e.tomador+' • '+fmt(e.principal)+' • '+Math.round(Number(e.percentual)*100)+'% • Devido '+fmt(d.total-d.pagos);
+    opt.textContent=
+      'ID '+empShortId(e)+' • '+e.tomador+
+      ' • Saldo '+fmt(e.saldo)+
+      ' • Juros '+fmt(jurosMes)+
+      ' • Total '+fmt(totalMes);
     sel.appendChild(opt);
   });
   if(!sel.options.length){
@@ -1132,9 +1198,9 @@ function aplicarFiltros(){
         data:(tipo==='emp_vencidos' || tipo==='emp_avencer') ? vence : e.data,
         tipo:rot,
         desc:'[ID '+empShortId(e)+'] '+e.tomador+' • Venc.: '+(e.vencimento||'—'),
-        valor:-Number(e.principal)
+        valor:-Number(e.principalOriginal ?? e.principal ?? 0)
       });
-      totOut += Number(e.principal);
+      totOut += Number(e.principalOriginal ?? e.principal ?? 0);
     });
   }
 
@@ -1218,6 +1284,7 @@ function importBackup(file){
       if(!data.lock) data.lock = { pin: (state.lock && state.lock.pin) || '', locked: false };
       if(typeof data.seqEmprestimo !== 'number') data.seqEmprestimo = 1;
 
+      /* Re-migra para garantir principalOriginal/saldo */
       localStorage.setItem(KEY, JSON.stringify(data));
       localStorage.setItem(LAST_IMPORT_KEY, new Date().toISOString());
       updateImportStatus();
@@ -1348,6 +1415,45 @@ function renderAll(){
   updateBackupStatus();
 }
 
+/* ===== Regra de pagamento (core da correção) =====
+   - Calcula juros do mês sobre saldo (principal em aberto).
+   - O valor pago cobre juros primeiro.
+   - O que sobrar abate o saldo.
+   - Se ainda houver saldo, no próximo mês juros voltam em cima do novo saldo.
+*/
+function aplicarPagamentoEmprestimo(emp, valorPago, data){
+  const saldoAntes = Number(emp.saldo||0);
+  const perc = Number(emp.percentual||0);
+  const jurosMes = saldoAntes * perc;
+
+  const pago = Math.max(0, Number(valorPago||0));
+  const jurosPago = Math.min(pago, jurosMes);
+  const sobra = Math.max(0, pago - jurosPago);
+  const principalPago = Math.min(sobra, saldoAntes);
+
+  const saldoDepois = round2(Math.max(0, saldoAntes - principalPago));
+
+  // Atualiza emp
+  emp.saldo = saldoDepois;
+
+  if(saldoDepois > 0.009){
+    emp.status = 'aberto';
+    emp.vencimento = addMonths(data,1);
+    emp.ciclos = Number(emp.ciclos||1) + 1;
+  }else{
+    emp.status = 'fechado';
+    emp.vencimento = data;
+  }
+
+  return {
+    saldoAntes: round2(saldoAntes),
+    jurosMes: round2(jurosMes),
+    jurosPago: round2(jurosPago),
+    principalPago: round2(principalPago),
+    saldoDepois: round2(saldoDepois)
+  };
+}
+
 /* ===== Eventos ===== */
 addEventListener('click', async e=>{
   const t=e.target;
@@ -1402,7 +1508,15 @@ addEventListener('click', async e=>{
     state.emprestimos.push({
       id:idEmp,
       codigo:'EMP-'+String(state.seqEmprestimo++).padStart(4,'0'),
-      tomador, principal, percentual, data, status, ciclos:1, extra:0, vencimento:venc
+      tomador,
+      principal: principal,               // mantido para compat
+      principalOriginal: principal,       // novo: não muda (saída do fundo)
+      saldo: round2(principal),           // novo: principal em aberto (vai mudando)
+      percentual,
+      data,
+      status,
+      ciclos:1,
+      vencimento:venc
     });
 
     // Cashback 5% a partir de 250
@@ -1421,6 +1535,7 @@ addEventListener('click', async e=>{
     const emp=state.emprestimos.find(x=>x.id===eId);
     if(emp){
       emp.status = (emp.status==='aberto')?'fechado':'aberto';
+      if(emp.status==='fechado') emp.saldo = 0;
       save();
     }
   }
@@ -1437,79 +1552,49 @@ addEventListener('click', async e=>{
     showToast('Empréstimo removido.', true);
   }
 
-  /* RETORNOS */
+  /* RETORNOS (CORREÇÃO AQUI) */
   if(t.id==='btnAddRetorno'){
     if(!ensureNotLocked()) return;
     const emprestimoId=document.getElementById('retornoEmprestimo').value;
     const valorTotal=Number(document.getElementById('retornoValor').value||0);
     const data=document.getElementById('retornoData').value || today();
-    const tipo=document.getElementById('retornoTipo').value;
+    const tipoSel=document.getElementById('retornoTipo').value;
 
     if(!emprestimoId || valorTotal<=0){ alert('Selecione o empréstimo e um valor > 0'); return; }
     const emp=state.emprestimos.find(x=>x.id===emprestimoId);
     if(!emp){ alert('Empréstimo não encontrado.'); return; }
 
-    const dAntes=devidoEmprestimo(emp);
-    const jurosCiclo=jurosDoCiclo(emp);
-
-    if(tipo==='juros'){
-      state.retornos.push({id:uid(), emprestimoId, valor:valorTotal, data, tipo:'juros'});
-      if(valorTotal + 0.009 >= jurosCiclo){
-        emp.ciclos=Number(emp.ciclos||1)+1;
-        emp.vencimento=addMonths(data,1);
-        emp.status='aberto';
-      }
-      save();
-      showToast('Retorno (juros) registrado.');
+    if(Number(emp.saldo||0) <= 0.009){
+      showToast('Este empréstimo já está quitado.', true);
       return;
     }
 
-    if(tipo==='principal'){
-      state.retornos.push({id:uid(), emprestimoId, valor:valorTotal, data, tipo:'principal'});
-      const restante = dAntes.total - (dAntes.pagos + valorTotal);
-      if(restante > 0){
-        const extra = restante * Number(emp.percentual);
-        emp.extra = Number(emp.extra||0) + extra;
-        emp.vencimento = addMonths(data,1);
-        emp.status='aberto';
-      }else{
-        emp.status='fechado';
-        emp.vencimento = data;
-      }
-      save();
-      showToast('Retorno (principal) registrado.');
-      return;
+    // Aplica regra: juros primeiro, sobra abate saldo
+    const res = aplicarPagamentoEmprestimo(emp, valorTotal, data);
+
+    // Registra linhas de retorno (para histórico e KPI)
+    // Observação: mesmo que o usuário selecione "Somente Juros", se ele pagar mais do que os juros,
+    // o excedente abate principal (como você descreveu no exemplo).
+    if(res.jurosPago > 0){
+      state.retornos.push({id:uid(), emprestimoId, valor:res.jurosPago, data, tipo:'juros'});
+    }
+    if(res.principalPago > 0){
+      state.retornos.push({id:uid(), emprestimoId, valor:res.principalPago, data, tipo:'principal'});
     }
 
-    if(tipo==='misto'){
-      const parteJuros = Math.min(valorTotal, jurosCiclo);
-      const partePrincipal = Math.max(0, valorTotal - parteJuros);
+    save();
 
-      if(parteJuros>0) state.retornos.push({id:uid(), emprestimoId, valor:parteJuros, data, tipo:'juros'});
-      if(parteJuros + 0.009 >= jurosCiclo){
-        emp.ciclos=Number(emp.ciclos||1)+1;
-        emp.vencimento=addMonths(data,1);
-        emp.status='aberto';
-      }
+    // Mensagem objetiva do que aconteceu
+    const msg =
+      'Pagamento registrado. '+
+      'Juros do mês: '+fmt(res.jurosMes)+
+      ' • Juros pagos: '+fmt(res.jurosPago)+
+      ' • Abateu principal: '+fmt(res.principalPago)+
+      ' • Saldo p/ próximo mês: '+fmt(res.saldoDepois)+
+      (res.saldoDepois>0 ? ' (juros voltam no próximo mês).' : ' (quitado).');
 
-      if(partePrincipal>0){
-        state.retornos.push({id:uid(), emprestimoId, valor:partePrincipal, data, tipo:'principal'});
-        const restante = dAntes.total - (dAntes.pagos + parteJuros + partePrincipal);
-        if(restante > 0){
-          const extra = restante * Number(emp.percentual);
-          emp.extra = Number(emp.extra||0) + extra;
-          emp.vencimento = addMonths(data,1);
-          emp.status='aberto';
-        }else{
-          emp.status='fechado';
-          emp.vencimento=data;
-        }
-      }
-
-      save();
-      showToast('Retorno (misto) registrado.');
-      return;
-    }
+    showToast(msg);
+    return;
   }
 
   if(t.dataset.delRet){
@@ -1517,9 +1602,28 @@ addEventListener('click', async e=>{
     const id=t.dataset.delRet;
     const ok = await confirmDialog('Excluir este retorno?', 'Excluir retorno');
     if(!ok) return;
+
+    // Ao excluir retorno, precisamos recomputar o saldo do empréstimo (principal em aberto)
+    const ret = state.retornos.find(r=>r.id===id);
     state.retornos=state.retornos.filter(r=>r.id!==id);
+
+    if(ret){
+      const emp=state.emprestimos.find(x=>x.id===ret.emprestimoId);
+      if(emp){
+        // Recalcula saldo com base no principal original menos somatório de "principal" pagos
+        const principalOriginal = Number(emp.principalOriginal ?? emp.principal ?? 0);
+        const principalPago = state.retornos
+          .filter(r=>r.emprestimoId===emp.id && r.tipo==='principal')
+          .reduce((s,r)=>s+Number(r.valor||0),0);
+
+        emp.saldo = round2(Math.max(0, principalOriginal - principalPago));
+        emp.status = (emp.saldo>0.009) ? 'aberto' : 'fechado';
+        if(emp.status==='fechado') emp.vencimento = today();
+      }
+    }
+
     save();
-    showToast('Retorno removido.', true);
+    showToast('Retorno removido e saldo recalculado.', true);
   }
 
   /* PESSOAS */
@@ -1633,7 +1737,7 @@ addEventListener('click', async e=>{
     showToast('Bloqueado.');
   }
 
-  if(t.id==='btnDesbloquear'){
+  if(t.id==='btnDesbloquequear'){
     const elAtual=document.getElementById('pinAtual');
     const atual=elAtual.value || '';
     if(!(state.lock && state.lock.pin)){
@@ -1681,7 +1785,7 @@ addEventListener('focusout', e=>{
   if(t.dataset.pessoaNome){ save(); }
 });
 
-/* retorno auto-preenchido */
+/* retorno auto-preenchido (corrigido para regra juros->principal) */
 ['retornoEmprestimo','retornoTipo'].forEach(function(id){
   document.addEventListener('change', function(e){
     if(e.target.id!==id) return;
@@ -1690,12 +1794,18 @@ addEventListener('focusout', e=>{
     const el=document.getElementById('retornoValor');
     const emp=state.emprestimos.find(x=>x.id===emprestimoId);
     if(!emp){ el.value=''; return; }
-    const d=devidoEmprestimo(emp);
-    const outstanding=Math.max(0, d.total - d.pagos);
-    const juros=jurosDoCiclo(emp);
-    if(tipo==='juros') el.value=Math.min(juros, outstanding).toFixed(2);
-    else if(tipo==='misto') el.value=outstanding.toFixed(2);
-    else el.value=Math.min(Number(emp.principal), outstanding).toFixed(2);
+
+    const saldo = Number(emp.saldo||0);
+    const juros = jurosDoMes(emp);
+    const total = saldo + juros;
+
+    if(tipo==='juros'){
+      el.value = round2(juros).toFixed(2);          // só juros do mês
+    }else if(tipo==='principal'){
+      el.value = round2(saldo).toFixed(2);          // só saldo (principal em aberto)
+    }else{
+      el.value = round2(total).toFixed(2);          // quita (principal + juros do mês)
+    }
   });
 });
 
